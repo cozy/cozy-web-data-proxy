@@ -16,6 +16,13 @@ export default defineConfig({
     template: './src/targets/browser/index.ejs',
     title: 'Cozy DataProxy'
   },
+  performance: {
+    chunkSplit: {
+      forceSplitting: {
+        cozy: /node_modules[\\/]cozy*/,
+      },
+    }
+  },
   source: {
     entry: {
       index: './src/targets/browser/index.tsx'

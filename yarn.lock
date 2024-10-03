@@ -276,6 +276,11 @@
     "@types/prop-types" "*"
     csstype "^3.0.2"
 
+"@types/sharedworker@^0.0.126":
+  version "0.0.126"
+  resolved "https://registry.yarnpkg.com/@types/sharedworker/-/sharedworker-0.0.126.tgz#428060de38502ad2e61ee8530806c063f4342c2c"
+  integrity sha512-RucRz3GVt0UQD+TmG2CXiYPio9xFJ+ABoSoVL+u5QhRLakguFEvyYBXs02GcG+mLBh2PUNdhmishRt0/LU0NlQ==
+
 "@types/yargs-parser@*":
   version "21.0.3"
   resolved "https://registry.yarnpkg.com/@types/yargs-parser/-/yargs-parser-21.0.3.tgz#815e30b786d2e8f0dcd85fd5bcf5e1a04d008f15"

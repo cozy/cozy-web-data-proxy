@@ -1,13 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from 'src/App';
 
-const rootEl = document.querySelector('[role="application"]');
-if (rootEl) {
-  const root = ReactDOM.createRoot(rootEl);
+import { CozyProvider } from 'cozy-client';
+
+import App from 'src/App';
+import { setupApp } from './setupApp';
+
+
+const init = function () {
+  const { root, client } = setupApp()
+
   root.render(
     <React.StrictMode>
-      <App />
+      <CozyProvider client={client}>
+        <App />
+      </CozyProvider>
     </React.StrictMode>,
   );
 }
+
+init()

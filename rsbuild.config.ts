@@ -23,6 +23,11 @@ export default defineConfig({
   },
   tools: {
     rspack: {
+      module: {
+        rules: [
+          { test: /\.webapp$/i, type: "asset/source" }
+        ]
+      },
       plugins: [
         new rspack.CopyRspackPlugin({
           patterns: [

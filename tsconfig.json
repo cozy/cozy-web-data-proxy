@@ -13,7 +13,8 @@
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "src/*": ["./src/*"]
+      "src/*": ["./src/*"],
+      "manifest.webapp": ["./manifest.webapp"]
     }
   },
   "include": ["src"]

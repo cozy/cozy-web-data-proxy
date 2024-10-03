@@ -6,7 +6,7 @@ import flag from 'cozy-flags'
 
 import schema from 'src/doctypes'
 
-import manifest from '../../../manifest.webapp'
+const manifest = require('manifest.webapp')
 
 /**
  * Make and returns cozy client instance

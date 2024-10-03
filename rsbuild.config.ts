@@ -25,7 +25,7 @@ export default defineConfig({
     rspack: {
       module: {
         rules: [
-          { test: /\.webapp$/i, type: "asset/source" }
+          { test: /\.webapp$/i, type: "json" }
         ]
       },
       plugins: [

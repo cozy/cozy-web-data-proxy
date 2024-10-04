@@ -1,31 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useContext } from 'react'
+
+import { SharedWorkerContext } from './SharedWorkerProvider'
 
 export const useSharedWorker = () => {
-  const [worker, setWorker] = useState<SharedWorker | undefined>()
+  const context = useContext(SharedWorkerContext)
 
-  useEffect(() => {
-    const workerInst = new SharedWorker(new URL('./shared-worker.ts', import.meta.url), {
-      name: 'dataproxy-worker',
-    });
-
-    workerInst.port.addEventListener('message', e => {
-      console.log('REACT RECEIVED', e)
-    })
-    console.log('START PROCESS')
-    workerInst.port.start()
-    workerInst.port.postMessage('hello')
-    setWorker(workerInst)
-  }, [])
-
-
-  const sendMessage = () => {
-    if (worker) {
-      console.log('SEND FROM BUTTON')
-      worker.port.postMessage('hello')
-    }
-  }
-
-  return {
-    sendMessage
-  }
+  return context
 }

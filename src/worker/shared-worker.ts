@@ -1,33 +1,85 @@
-let ports = []
-let latest_state = {
-  count: 0
-}
+import * as Comlink from 'comlink'
 
-// eslint-disable-next-line no-console
-console.log('WORKER SCRIPT')
+import CozyClient, { Q } from 'cozy-client'
 
-// Post message to all connected ports
-const postMessageAll = (msg, excluded_port = null) => {
-  ports.forEach(port => {
-    // Don't post message to the excluded port, if one has been specified
-    if (port == excluded_port) {
-      return
+import { ClientData, DataProxyWorker } from 'src/common/DataProxyInterface'
+import schema from 'src/doctypes'
+
+let client: CozyClient | undefined = undefined
+
+const dataProxy: DataProxyWorker = {
+  setClient: async (clientData: ClientData) => {
+    console.log('RECEIVED setClient', clientData)
+    client = new CozyClient({
+      uri: clientData.uri,
+      token: clientData.token,
+      appMetadata: {
+        slug: 'cozy-data-proxy',
+        version: '1'
+      },
+      schema,
+      store: true
+    })
+  },
+  search: async (search: string) => {
+    console.log('RECEIVED search', search)
+    if (!client) {
+      throw new Error('Set client first')
     }
-    port.postMessage(msg)
-  })
+
+    // return await client.query(Q('io.cozy.settings'))
+
+    return [
+      {
+        type: 'file',
+        title: 'Axa',
+        name: '/Adminisitratif/' + search.length,
+      },
+      search.length % 2 === 0 ? {
+        type: 'file',
+        title: 'Axa',
+        name: '/Adminisitratif/',
+      } : undefined,
+      {
+        type: 'contact',
+        title: 'Conseiller AXA',
+        name: '0475361254',
+      },
+      search.length % 3 === 0 ? {
+        type: 'contact',
+        title: 'Conseiller AXA',
+        name: '0475361254',
+      } : {
+        type: 'contact',
+        title: 'Conseiller FORTUNEO',
+        name: '0476989807',
+      },
+      search.length % 5 === 0 ? {
+        type: 'file',
+        title: 'Axa',
+        name: '/Adminisitratif/',
+      } : undefined,
+      search.length % 5 === 0 ? {
+        type: 'file',
+        title: 'Axa',
+        name: '/Adminisitratif/',
+      } : undefined,
+      search.length % 5 === 0 ? {
+        type: 'contact',
+        title: 'Conseiller AXA',
+        name: '0475361254',
+      } : undefined,
+      {
+        type: 'contact',
+        title: 'Conseiller AXA',
+        name: '0475361254',
+      }
+    ].filter(Boolean)
+  }
 }
 
 onconnect = e => {
-  // eslint-disable-next-line no-console
-  console.log('WORKER INIT', e)
   const port = e.ports[0]
-  ports.push(port)
-  port.start()
 
-  port.onmessage = e => {
-    // eslint-disable-next-line no-console
-    console.log('WORKER RECEIVED', e)
-    latest_state.count++
-    postMessageAll('RESULT FROM WORKER' + latest_state.count)
-  }
+  Comlink.expose(dataProxy, port)
 }

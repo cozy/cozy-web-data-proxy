@@ -32,6 +32,12 @@
     "mocks todos": {
       "description": "TO REMOVE: only used as demonstration about Cozy App data interactions",
       "type": "io.mocks.todos"
+    },
+    "files": {
+      "type": "io.cozy.files"
+    },
+    "contacts": {
+      "type": "io.cozy.contacts"
     }
   }
 }

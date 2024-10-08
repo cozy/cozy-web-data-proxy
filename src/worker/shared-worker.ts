@@ -19,6 +19,8 @@ const dataProxy: DataProxyWorker = {
       schema,
       store: true,
     })
+    client.instanceOptions = clientData.instanceOptions as {}
+    client.capabilities = clientData.capabilities
   }
 }
 

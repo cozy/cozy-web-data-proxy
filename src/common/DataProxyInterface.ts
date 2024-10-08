@@ -24,3 +24,8 @@ export interface AllDocsResponse {
 export type CozyDocs = CozyDoc[]
 
 export type CozyDoc = (IOCozyFile | IOCozyContact | IOCozyApp)
+
+export interface SearchResult {
+  fields: string[]
+  doc: CozyDoc
+}

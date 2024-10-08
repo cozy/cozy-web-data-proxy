@@ -4,83 +4,120 @@ import { encode } from "flexsearch/dist/module/lang/latin/balance.js";
 
 import { queryFilesForSearch, queryAllContacts, queryAllApps } from 'src/queries'
 import CozyClient, { generateWebLink, models } from 'cozy-client'
-import { CozyDocs, CozyDoc } from 'src/common/DataProxyInterface'
+import { CozyDocs, CozyDoc, SearchResult } from 'src/common/DataProxyInterface'
 import {FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE,  SEARCH_SCHEMA, TYPE_DIRECTORY } from 'src/consts'
+import { IOCozyFile, IOCozyContact, IOCozyApp } from 'cozy-client/types/types'
+import { DocumentSearchResult } from 'flexsearch';
 
-//import { shouldBeOpenedByOnlyOffice, isNote } from 'cozy-client/dist/models/file'
+const isIOCozyFile = (doc: CozyDoc): doc is IOCozyFile => {
+  return doc._type === FILES_DOCTYPE
+}
+
+const isIOCozyContact = (doc: CozyDoc): doc is IOCozyContact => {
+  return doc._type === CONTACTS_DOCTYPE
+}
+
+const isIOCozyApp = (doc: CozyDoc): doc is IOCozyApp => {
+  return doc._type === APPS_DOCTYPE
+}
 
 export const initIndexes = async (client: CozyClient) => {
-  console.log('lets init indexes');
-
   const files = await queryFilesForSearch(client)
-  console.log('files : ', files);
   const filesIndex = indexDocs("io.cozy.files", files)
   const contacts = await queryAllContacts(client)
   const contactsIndex = indexDocs("io.cozy.contacts", contacts)
   const apps = await queryAllApps(client)
   const appsIndex = indexDocs("io.cozy.apps", apps)
 
-  // ---- BEGIN TEST
-  const flexsearchIndexTest = new Document({
-    tokenize: "forward",
-    document: {
-      id: "id",
-      index: ["foo"],
-      store: true
-    }
-  })
-  flexsearchIndexTest.add({id: 10000, foo: "yannick"})
-  const res1 = flexsearchIndexTest.search("yannick", { enrich: true })
-  const res2 = flexsearchIndexTest.search("yann",  { enrich: true })
-  const res3 = flexsearchIndexTest.search("foo", { enrich: true })
-  console.log('[TEST] res search test : ', res1, res2, res3);
-  console.log('[TEST] index content : ', flexsearchIndexTest);
-  // ---- END TEST
-
-
   return [appsIndex, filesIndex, contactsIndex]
 }
 
 
 const getSearchResultTitle = (doc: CozyDoc) => {
-  if (doc._type === FILES_DOCTYPE) {
+  if (isIOCozyFile(doc)) {
     return doc.name
   }
-  if (doc._type === CONTACTS_DOCTYPE) {
-    // TODO: display name contact déjà calculé ?
-    return doc.fullname // TODO: adapt if there is no fullname
+  if (isIOCozyContact(doc)) {
+    return doc.displayName
   }
-  if (doc._type === APPS_DOCTYPE) {
+  if (isIOCozyApp(doc)) {
     return doc.name
   }
   return null
 }
 
-// TODO: compute the subtitle based on field match, if it is not the main title?
-const getSearchResultSubTitle = (doc: CozyDoc) => {
-  if (doc._type === FILES_DOCTYPE) {
-    return doc.path
+const findMatchingValueInArray = (query, items, attribute) => {
+  for (const item of items) {
+    if (item[attribute].includes(query)) {
+      return item[attribute]
+    }
   }
-  if (doc._type === CONTACTS_DOCTYPE) {
-    return '' // TODO: display phone or email or address if it exists?
+}
+
+const getSearchResultSubTitle = (client: CozyClient, searchResult: SearchResult, query: string) => {
+  if (isIOCozyFile(searchResult.doc)) {
+    return searchResult.doc.path
   }
-  if (doc._type === APPS_DOCTYPE) {
-    return doc.description // utiliser short_description locale manifest via cozy-client 
+  if (isIOCozyContact(searchResult.doc)) {
+    let matchingValue
+
+    // Several document fields might match a search query. Let's take the first one different from name, assuming a relevance order 
+    const matchingField = searchResult.fields.find(field => field !== 'displayName' && field !== 'fullname')
+    if (!matchingField) {
+      return null
+    }
+    console.log('look for field ', matchingField)
+    if (matchingField === 'email[]:address') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.email, 'address')
+      if (!matchingValue) {
+        // No matching value found, but we now it's an email, so let's take the first one
+        return searchResult.doc.email && searchResult.doc.email[0]
+      }
+    } else if (matchingField === 'address[]:formattedAddress') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.address, 'formattedAddress')
+      if (!matchingValue) {
+        // No matching value found, but we now it's an address, so let's take the first one
+        return searchResult.doc.address && searchResult.doc.address[0]
+      }
+    } else if (matchingField === 'phone[]:number') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.phone, 'number')
+        if (!matchingValue) {
+        // No matching value found, but we now it's a phone, so let's take the first one
+        return searchResult.doc.phone && searchResult.doc.phone[0]
+      }
+    } else if (matchingField === 'cozy[]:url') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.cozy, 'url')
+        if (!matchingValue) {
+        // No matching value found, but we now it's an cozy URL, so let's take the first one
+        return searchResult.doc.cozy && searchResult.doc.cozy[0]
+      }
+    } else {
+      matchingValue = searchResult.doc[matchingField]
+    }
+    console.log('matching value contact : ', matchingValue);
+
+    return matchingValue
+  }
+  if (searchResult.doc._type === APPS_DOCTYPE) {
+    const locale = client.instanceOptions.locale || 'en'
+    if (searchResult.doc.locales[locale]) {
+      return searchResult.doc.locales[locale].short_description
+    }
   }
   return null
 }
 
 const getSearchResultSlug = (doc: CozyDoc) => {
-  if (doc._type === FILES_DOCTYPE) {
+  if (isIOCozyFile(doc)) {
     if (models.file.isNote(doc)) {
       return 'notes'
     }
     return 'drive'
   }
-  if (doc._type === CONTACTS_DOCTYPE) {
+  if (isIOCozyContact(doc)) {
     return 'contacts'
   }
-  if (doc._type === APPS_DOCTYPE) {
+  if (isIOCozyApp(doc)) {
     return doc.slug
   }
   return null
@@ -90,7 +127,7 @@ const buildOpenURL = (client: CozyClient, doc: CozyDoc) => {
   let urlHash = ''
   const slug = getSearchResultSlug(doc)
 
-  if (doc._type === FILES_DOCTYPE) {
+  if (isIOCozyFile(doc)) {
     const isDir = doc.type === TYPE_DIRECTORY
     const dirId =  isDir ? doc._id : doc.dir_id
     const folderURLHash = `/folder/${dirId}`
@@ -107,33 +144,47 @@ const buildOpenURL = (client: CozyClient, doc: CozyDoc) => {
       urlHash = `${folderURLHash}/file/${doc._id}`
     }
   }
-  if (doc._type === CONTACTS_DOCTYPE) {
+  if (isIOCozyContact(doc)) {
     urlHash = `/${doc._id}`
   }
   if (!slug) {
     return null
   }
-  return generateWebLink({cozyUrl: client.getStackClient().uri, slug, subDomainType: client.getInstanceOptions().subdomain, hash: urlHash})
+  const subDomain = client.getInstanceOptions().subdomain
+  return generateWebLink({cozyUrl: client.getStackClient().uri, slug, subDomainType: subDomain, hash: urlHash, searchParams: [], pathname: ''})
 }
 
-export const deduplicateAndFlatten = searchResults => {
-  const combinedResults = searchResults.flatMap(item => item.result)
-  return [...new Map(combinedResults.map(r => [r.id, r])).values()]
+
+export const deduplicateAndFlatten = (searchResults: DocumentSearchResult<true>[]) => {
+  const combinedResults = searchResults.flatMap(item => 
+    item.result.map(r => ({ ...r, field: item.field }))
+  )
+
+  const resultMap = new Map()
+
+  combinedResults.forEach(({ id, field, ...rest }) => {
+    if (resultMap.has(id)) {
+      resultMap.get(id).fields.push(field)
+    } else {
+      resultMap.set(id, { id, fields: [field], ...rest })
+    }
+  })
+
+  return [...resultMap.values()]
 }
 
-export const normalizeSearchResult = (client: CozyClient, doc: CozyDoc) => {
-  console.log('normalize doc :  ', doc)
-  const url = buildOpenURL(client, doc)
-  const type = getSearchResultSlug(doc)
-  const title = getSearchResultTitle(doc)
-  const name = getSearchResultSubTitle(doc)
-  // TODO: add mime for file icon
-  const normalizedDoc = {...doc, type, title, name, url}
+export const normalizeSearchResult = (client: CozyClient, searchResult: SearchResult, query: string) => {
+  console.log('normalize doc :  ', searchResult.doc)
+  const url = buildOpenURL(client, searchResult.doc)
+  const type = getSearchResultSlug(searchResult.doc)
+  const title = getSearchResultTitle(searchResult.doc)
+  const name = getSearchResultSubTitle(client, searchResult, query)
+  const normalizedDoc = {...searchResult.doc, type, title, name, url}
   return normalizedDoc
 }
 
-export const searchOnIndexes = (query, indexes) => {
-  let searchResults: any = []
+export const searchOnIndexes = (query: string, indexes: Document[]) => {
+  let searchResults: DocumentSearchResult<true> = []
   for (const index of indexes) { 
     const results = index.search(query, 10, { enrich: true})
     searchResults = searchResults.concat(results)

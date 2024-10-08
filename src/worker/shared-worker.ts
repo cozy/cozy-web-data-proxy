@@ -26,6 +26,9 @@ const dataProxy: DataProxyWorker = {
     client.instanceOptions = {
       subdomain: 'nested'
     }
+    await client.loadInstanceOptionsFromStack()
+
+    console.log('client : ', client)
     if (!searchIndexes) {
       const indexes = await initIndexes(client)
       console.log('[INDEX] built indexes : ', indexes)
@@ -44,7 +47,7 @@ const dataProxy: DataProxyWorker = {
     const results = deduplicateAndFlatten(allResults)
     console.log('[SEARCH] dedup : ', results);
 
-    return results.map(res => normalizeSearchResult(client, res.doc))
+    return results.map(res => normalizeSearchResult(client, res, query))
 
     // return [
     //   {

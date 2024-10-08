@@ -26,7 +26,7 @@ const getSearchResultTitle = (doc: CozyDoc) => {
   }
 
   if (isIOCozyContact(doc)) {
-    return doc.displayName
+    return doc.displayName || doc.fullname
   }
 
   if (isIOCozyApp(doc)) {

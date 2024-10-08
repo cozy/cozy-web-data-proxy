@@ -61,7 +61,7 @@ const dataProxy: DataProxyWorker = {
     const results = deduplicateAndFlatten(allResults)
     console.log('[SEARCH] dedup : ', results);
 
-    return results.map(res => normalizeSearchResult(client, res.doc))
+    return results.map(res => normalizeSearchResult(client, res, query))
   }
 }
 

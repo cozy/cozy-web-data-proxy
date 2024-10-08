@@ -14,6 +14,7 @@ export interface ClientData {
 
 export interface ClientInstanceOptions {
   subdomain: 'flat' | 'nested'
+  locale: string
 }
 
 export interface SearchResult {

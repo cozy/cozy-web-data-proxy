@@ -1,17 +1,19 @@
+// Attribute order matters to apply priority on matching results 
 export const SEARCH_SCHEMA = {
   "io.cozy.files": [
     "name",
     "path"
   ],
   "io.cozy.contacts": [
+    "displayName",
     "fullname",
-    "company",
-    "jobTitle",
-    "birthday",
     "email[]:address",
     "address[]:formattedAddress",
     "phone[]:number",
-    "cozy[]:url"
+    "cozy[]:url",
+    "birthday",
+    "company",
+    "jobTitle",
   ],
   "io.cozy.apps": [
     "slug",

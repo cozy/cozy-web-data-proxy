@@ -1,16 +1,21 @@
 import CozyClient, { generateWebLink, models } from 'cozy-client'
 
 import { SearchResult } from 'src/common/DataProxyInterface'
-import { TYPE_DIRECTORY } from 'src/consts'
+import { APPS_DOCTYPE, TYPE_DIRECTORY } from 'src/consts'
 import { CozyDoc, isIOCozyApp, isIOCozyContact, isIOCozyFile } from 'src/worker/search/types'
 
-export const normalizeSearchResult = (client: CozyClient, doc: CozyDoc): SearchResult => {
-  const url = buildOpenURL(client, doc)
-  const type = getSearchResultSlug(doc)
-  const title = getSearchResultTitle(doc)
-  const name = getSearchResultSubTitle(doc)
+export interface RawSearchResult {
+  fields: string[]
+  doc: CozyDoc
+}
+
+export const normalizeSearchResult = (client: CozyClient, searchResults: RawSearchResult, query: string): SearchResult => {
+  const url = buildOpenURL(client, searchResults.doc)
+  const type = getSearchResultSlug(searchResults.doc)
+  const title = getSearchResultTitle(searchResults.doc)
+  const name = getSearchResultSubTitle(client, searchResults, query)
   // TODO: add mime for file icon
-  const normalizedDoc = {doc, type, title, name, url}
+  const normalizedDoc = {doc: searchResults.doc, type, title, name, url}
 
   return normalizedDoc
 }
@@ -28,24 +33,68 @@ const getSearchResultTitle = (doc: CozyDoc) => {
   if (isIOCozyApp(doc)) {
     return doc.name
   }
+}
 
-  return null
+const findMatchingValueInArray = (query: string, items: any[], attribute: string) => {
+  for (const item of items) {
+    if (item[attribute].includes(query)) {
+      return item[attribute]
+    }
+  }
 }
 
 // TODO: compute the subtitle based on field match, if it is not the main title?
-const getSearchResultSubTitle = (doc: CozyDoc) => {
-  if (isIOCozyFile(doc)) {
-    return doc.path
+const getSearchResultSubTitle = (client: CozyClient, searchResult: RawSearchResult, query: string) => {
+  if (isIOCozyFile(searchResult.doc)) {
+    return searchResult.doc.path
   }
+  if (isIOCozyContact(searchResult.doc)) {
+    let matchingValue
 
-  if (isIOCozyContact(doc)) {
-    return '' // TODO: display phone or email or address if it exists?
+    // Several document fields might match a search query. Let's take the first one different from name, assuming a relevance order 
+    const matchingField = searchResult.fields.find(field => field !== 'displayName' && field !== 'fullname')
+    if (!matchingField) {
+      return null
+    }
+    console.log('look for field ', matchingField)
+    if (matchingField === 'email[]:address') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.email, 'address')
+      if (!matchingValue) {
+        // No matching value found, but we now it's an email, so let's take the first one
+        return searchResult.doc.email && searchResult.doc.email[0]
+      }
+    } else if (matchingField === 'address[]:formattedAddress') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.address, 'formattedAddress')
+      if (!matchingValue) {
+        // No matching value found, but we now it's an address, so let's take the first one
+        return searchResult.doc.address && searchResult.doc.address[0]
+      }
+    } else if (matchingField === 'phone[]:number') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.phone, 'number')
+        if (!matchingValue) {
+        // No matching value found, but we now it's a phone, so let's take the first one
+        return searchResult.doc.phone && searchResult.doc.phone[0]
+      }
+    } else if (matchingField === 'cozy[]:url') {
+      matchingValue = findMatchingValueInArray(query, searchResult.doc.cozy, 'url')
+        if (!matchingValue) {
+        // No matching value found, but we now it's an cozy URL, so let's take the first one
+        return searchResult.doc.cozy && searchResult.doc.cozy[0]
+      }
+    } else {
+      matchingValue = searchResult.doc[matchingField]
+    }
+    console.log('matching value contact : ', matchingValue);
+
+    return matchingValue
   }
-
-  if (isIOCozyApp(doc)) {
-    return doc.description // utiliser short_description locale manifest via cozy-client 
+  if (searchResult.doc._type === APPS_DOCTYPE) {
+    // @ts-ignore
+    const locale = client.instanceOptions.locale || 'en'
+    if (searchResult.doc.locales[locale]) {
+      return searchResult.doc.locales[locale].short_description
+    }
   }
-
   return null
 }
 

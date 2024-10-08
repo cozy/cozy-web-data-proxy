@@ -39,8 +39,21 @@ export const searchOnIndexes = (query: string, indexes: FlexSearch.Document<Cozy
 }
 
 export const deduplicateAndFlatten = (searchResults: FlexSearch.EnrichedDocumentSearchResultSetUnit<CozyDoc>[]) => {
-  const combinedResults = searchResults.flatMap(item => item.result)
-  return [...new Map(combinedResults.map(r => [r.id, r])).values()]
+  const combinedResults = searchResults.flatMap(item => 
+    item.result.map(r => ({ ...r, field: item.field }))
+  )
+
+  const resultMap = new Map()
+
+  combinedResults.forEach(({ id, field, ...rest }) => {
+    if (resultMap.has(id)) {
+      resultMap.get(id).fields.push(field)
+    } else {
+      resultMap.set(id, { id, fields: [field], ...rest })
+    }
+  })
+
+  return [...resultMap.values()]
 }
 
 const indexDocs = (doctype: keyof typeof SEARCH_SCHEMA, docs: CozyDoc[]) => {

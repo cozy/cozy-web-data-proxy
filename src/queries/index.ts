@@ -1,15 +1,8 @@
 import CozyClient, { generateWebLink, Q } from 'cozy-client'
 import { AllDocsResponse, CozyDocs } from 'src/common/DataProxyInterface'
 import { IOCozyFile, FileDocument, FolderDocument, IOCozyContact, QueryResult } from 'cozy-client/types/types'
+import {FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE, TYPE_DIRECTORY, ROOT_DIR_ID, SHARED_DRIVES_DIR_ID } from 'src/consts'
 
-const FILES_DOCTYPE = 'io.cozy.files'
-const CONTACTS_DOCTYPE = 'io.cozy.contacts'
-const APPS_DOCTYPE = 'io.cozy.apps'
-
-const ROOT_DIR_ID = 'io.cozy.files.root-dir'
-const TRASH_DIR_ID = 'io.cozy.files.trash-dir'
-const SHARED_DRIVES_DIR_ID = 'io.cozy.files.shared-drives-dir' // This folder mostly contains external drives like Nextcloud
-const TYPE_DIRECTORY = 'directory'
 
 
 
@@ -23,7 +16,7 @@ export const queryFilesForSearch = async (client: CozyClient): Promise<CozyDocs>
   const files = resp.rows.map(row => ({ id: row.id, ...row.doc }))
   const folders = files.filter(file => file.type === TYPE_DIRECTORY)
 
-  const notInTrash = (file:IOCozyFile) => !file.trashed && file.path && !/^\/\.cozy_trash/.test(file.path)
+  const notInTrash = (file:IOCozyFile) => !file.trashed && !/^\/\.cozy_trash/.test(file.path)
   const notOrphans = (file:IOCozyFile) =>
     folders.find(folder => folder._id === file.dir_id) !== undefined
   const notRoot = (file: IOCozyFile) => file._id !== ROOT_DIR_ID
@@ -67,46 +60,62 @@ export const normalizeString = str =>
  * @param {IOCozyFile} file - file to normalize
  * @returns file with normalized field to be used in AutoSuggestion
  */
+// export const makeNormalizedFile = (client, folders, file) => {
+//   const isDir = file.type === TYPE_DIRECTORY
+//   const dirId = isDir ? file._id : file.dir_id
+//   const urlHash = `/folder/${dirId}`
+//   console.log('subodmain : ', client.getInstanceOptions().subdomain);
+//   const urlToFolder = generateWebLink({cozyUrl: client.getStackClient().uri, slug: 'drive', subDomainType: client.getInstanceOptions().subdomain, hash: urlHash})
+//   console.log('urlToFolder : ', urlToFolder);
+
+//   let path, url, parentUrl
+//   let openOn = 'drive'
+//   if (isDir) {
+//     path = file.path
+//     url = urlToFolder
+//     parentUrl = urlToFolder
+//   } else {
+//     const parentDir = folders.find(folder => folder._id === file.dir_id)
+//     path = parentDir && parentDir.path ? parentDir.path : ''
+//     parentUrl = parentDir && parentDir._id ? `#/folder/${parentDir._id}` : ''
+//     if (models.file.isNote(file)) {
+//       url = `/n/${file.id}`
+//       openOn = 'notes'
+//     } else if (models.file.shouldBeOpenedByOnlyOffice(file)) {
+//       url = makeOnlyOfficeFileRoute(file.id, { fromPathname: urlToFolder })
+//     } else {
+//       url = `${urlToFolder}/file/${file._id}`
+//     }
+//   }
+
+//   return {
+//     id: file._id,
+//     _id: file._id,
+//     _type: 'io.cozy.files',
+//     type: file.type,
+//     name: file.name,
+//     mime: file.mime,
+//     class: file.class,
+//     path,
+//     url,
+//     parentUrl,
+//     openOn
+//   }
+// }
+
 export const makeNormalizedFile = (client, folders, file) => {
   const isDir = file.type === TYPE_DIRECTORY
-  const dirId = isDir ? file._id : file.dir_id
-  const urlHash = `/folder/${dirId}`
-  console.log('subodmain : ', client.getInstanceOptions().subdomain);
-  const urlToFolder = generateWebLink({cozyUrl: client.getStackClient().uri, slug: 'drive', subDomainType: client.getInstanceOptions().subdomain, hash: urlHash})
-  console.log('urlToFolder : ', urlToFolder);
-
-  let path, url, parentUrl
-  let openOn = 'drive'
+  let path = ''
   if (isDir) {
     path = file.path
-    url = urlToFolder
-    parentUrl = urlToFolder
   } else {
     const parentDir = folders.find(folder => folder._id === file.dir_id)
     path = parentDir && parentDir.path ? parentDir.path : ''
-    parentUrl = parentDir && parentDir._id ? `#/folder/${parentDir._id}` : ''
-    if (models.file.isNote(file)) {
-      url = `/n/${file.id}`
-      openOn = 'notes'
-    } else if (models.file.shouldBeOpenedByOnlyOffice(file)) {
-      url = makeOnlyOfficeFileRoute(file.id, { fromPathname: urlToFolder })
-    } else {
-      url = `${urlToFolder}/file/${file._id}`
-    }
   }
-
-  return {
-    id: file._id,
-    type: file.type,
-    name: file.name,
-    mime: file.mime,
-    class: file.class,
-    path,
-    url,
-    parentUrl,
-    openOn
-  }
+  return {...file, _type: 'io.cozy.files', path}
 }
+
+
 
 export const queryAllContacts = (client: CozyClient): Promise<CozyDocs> => {
   return client.queryAll(Q(CONTACTS_DOCTYPE).limitBy(1000))

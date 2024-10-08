@@ -4,7 +4,7 @@ import CozyClient, { Q } from 'cozy-client'
 
 import { ClientData, DataProxyWorker } from 'src/common/DataProxyInterface'
 import schema from 'src/doctypes'
-import { initIndexes, searchOnIndexes } from 'src/search'
+import { initIndexes, searchOnIndexes, normalizeSearchResult, deduplicateAndFlatten } from 'src/search'
 
 let client: CozyClient | undefined = undefined
 
@@ -28,6 +28,7 @@ const dataProxy: DataProxyWorker = {
     }
     if (!searchIndexes) {
       const indexes = await initIndexes(client)
+      console.log('[INDEX] built indexes : ', indexes)
       searchIndexes = indexes
     }
   },
@@ -38,14 +39,12 @@ const dataProxy: DataProxyWorker = {
     }
 
     console.log('[SEARCH] indexes : ', searchIndexes)
+    const allResults = searchOnIndexes(query, searchIndexes)
+    console.log('[SEARCH] results : ', allResults);
+    const results = deduplicateAndFlatten(allResults)
+    console.log('[SEARCH] dedup : ', results);
 
-    const results = searchOnIndexes(query, searchIndexes)
-    console.log('[SEARCH] results : ', JSON.stringify(results, null, 2));
-    return results.flatMap(res => {
-      return res.result.map(res2 => {
-        return {...res2.doc, type: 'file', title: res2.doc.name, name: res2.doc.path }
-      }) 
-    })
+    return results.map(res => normalizeSearchResult(client, res.doc))
 
     // return [
     //   {

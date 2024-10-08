@@ -89,10 +89,14 @@ const getSearchResultSubTitle = (client: CozyClient, searchResult: RawSearchResu
     return matchingValue
   }
   if (searchResult.doc._type === APPS_DOCTYPE) {
-    // @ts-ignore
-    const locale = client.instanceOptions.locale || 'en'
-    if (searchResult.doc.locales[locale]) {
-      return searchResult.doc.locales[locale].short_description
+    try {
+      // @ts-ignore
+      const locale = client.instanceOptions.locale || 'en'
+      if (searchResult.doc.locales[locale]) {
+        return searchResult.doc.locales[locale].short_description
+      }
+    } catch {
+      return searchResult.doc.name
     }
   }
   return null

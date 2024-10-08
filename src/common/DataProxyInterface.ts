@@ -1,4 +1,4 @@
-import { ClientCapabilities } from 'cozy-client/types/types'
+import { ClientCapabilities, IOCozyApp, IOCozyContact, IOCozyFile } from 'cozy-client/types/types'
 
 export interface DataProxyWorker {
   search: (query: string) => Promise<unknown>
@@ -12,6 +12,14 @@ export interface ClientData {
   capabilities: ClientCapabilities
 }
 
-interface ClientInstanceOptions {
+export interface ClientInstanceOptions {
   subdomain: 'flat' | 'nested'
+}
+
+export interface SearchResult {
+  doc: IOCozyFile | IOCozyApp | IOCozyContact
+  type: string
+  title: string
+  name: string
+  url: string
 }

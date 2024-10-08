@@ -3,43 +3,55 @@ import FlexSearch from 'flexsearch'
 import { encode as encode_balance } from 'flexsearch/dist/module/lang/latin/balance';
 
 import CozyClient from 'cozy-client'
+import Minilog from 'cozy-minilog'
 
+import { SEARCH_SCHEMA } from 'src/consts'
 import { queryFilesForSearch, queryAllContacts, queryAllApps } from 'src/worker/queries'
 import { CozyDoc } from 'src/worker/search/types';
 
+const log = Minilog('🗂️ [Indexing]')
 
 export const initIndexes = async (client: CozyClient) => {
-  console.log('lets init indexes');
+  log.debug('Initializing indexes')
 
   const files = await queryFilesForSearch(client)
-  const filesIndex = indexDocs(files)
-  
+  const filesIndex = indexDocs("io.cozy.files", files)
+
   const contacts = await queryAllContacts(client)
-  const contactsIndex = indexDocs(contacts)
+  const contactsIndex = indexDocs("io.cozy.contacts", contacts)
 
   const apps = await queryAllApps(client)
-  const appsIndex = indexDocs(apps)
+  const appsIndex = indexDocs("io.cozy.apps", apps)
 
+  log.debug('Finished initializing indexes')
   return [filesIndex, contactsIndex, appsIndex]
 }
 
 export const searchOnIndexes = (query: string, indexes: FlexSearch.Document<CozyDoc, true>[]) => {
-  let res: FlexSearch.EnrichedDocumentSearchResultSetUnit<CozyDoc>[] = []
-  for (const index of indexes){ 
+  log.debug('Searching on indexes')
+  let searchResults: FlexSearch.EnrichedDocumentSearchResultSetUnit<CozyDoc>[] = []
+  for (const index of indexes) { 
     const results = index.search(query, 10, { enrich: true})
-    res = res.concat(results)
+    searchResults = searchResults.concat(results)
   }
-  return res
+  log.debug('Finished seaching on indexes')
+  return searchResults
 }
 
+export const deduplicateAndFlatten = (searchResults: FlexSearch.EnrichedDocumentSearchResultSetUnit<CozyDoc>[]) => {
+  const combinedResults = searchResults.flatMap(item => item.result)
+  return [...new Map(combinedResults.map(r => [r.id, r])).values()]
+}
 
-const indexDocs = (docs: CozyDoc[]) => {
+const indexDocs = (doctype: keyof typeof SEARCH_SCHEMA, docs: CozyDoc[]) => {
+  const fieldsToIndex = SEARCH_SCHEMA[doctype]
+
   const flexsearchIndex = new FlexSearch.Document<CozyDoc, true>({
     tokenize: 'forward',
     encode: encode_balance,
     document: {
-      id: "id",
-      index: Object.keys(docs[0]),
+      id: "_id",
+      index: fieldsToIndex,
       store: true
     }
   })

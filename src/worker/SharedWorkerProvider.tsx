@@ -1,9 +1,9 @@
-import * as Comlink from 'comlink';
-import React, { useState, useEffect, ReactNode } from 'react';
+import * as Comlink from 'comlink'
+import React, { useState, useEffect, ReactNode } from 'react'
 
 import { useClient } from 'cozy-client';
 
-import { DataProxyWorker } from 'src/common/DataProxyInterface';
+import { ClientInstanceOptions, DataProxyWorker } from 'src/common/DataProxyInterface';
 
 export const SharedWorkerContext = React.createContext<DataProxyWorker | undefined>(undefined)
 
@@ -30,10 +30,9 @@ export const SharedWorkerProvider = React.memo(({ children }: SharedWorkerProvid
       await obj.setClient({
         uri,
         token: token.token,
-        instanceOptions: client.instanceOptions,
+        instanceOptions: client.instanceOptions as ClientInstanceOptions,
         capabilities: client.capabilities
       })
-
       setWorker(() => obj)
     }
 

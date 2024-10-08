@@ -1,15 +1,12 @@
 // the documents schema, necessary for CozyClient
 export default {
-  timetable: {
-    doctype: 'io.cozy.calendar.events'
+  files: {
+    doctype: 'io.cozy.files'
   },
-  homeworks: {
-    doctype: 'io.cozy.calendar.todos'
+  contacts: {
+    doctype: 'io.cozy.contacts'
   },
-  grades: {
-    doctype: 'io.cozy.timeseries.grades'
-  },
-  presence: {
-    doctype: 'io.cozy.calendar.presence'
+  apps: {
+    doctype: 'io.cozy.apps'
   }
 }

@@ -1,8 +1,9 @@
 import CozyClient, { generateWebLink, Q } from 'cozy-client'
 import { IOCozyFile } from 'cozy-client/types/types'
-import { TYPE_DIRECTORY, ROOT_DIR_ID, SHARED_DRIVES_DIR_ID, makeNormalizedFile, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '../search/files/fileHelper'
+import { makeNormalizedFile } from '../search/files/fileHelper'
 import { AllDocsResponse, CozyDoc } from '../search/types'
 
+import {FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE, TYPE_DIRECTORY, ROOT_DIR_ID, SHARED_DRIVES_DIR_ID } from 'src/consts'
 
 export const queryFilesForSearch = async (client: CozyClient): Promise<CozyDoc[]> => {
   const resp: AllDocsResponse = await client
@@ -36,7 +37,7 @@ export const queryFilesForSearch = async (client: CozyClient): Promise<CozyDoc[]
   console.log('normalizedFilesPrevious', normalizedFilesPrevious)
 
   const normalizedFiles = normalizedFilesPrevious.map(file =>
-    makeNormalizedFile(client, folders, file)
+    makeNormalizedFile(folders, file)
   )
 
   return normalizedFiles

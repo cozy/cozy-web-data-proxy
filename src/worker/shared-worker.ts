@@ -2,17 +2,23 @@ import FlexSearch from 'flexsearch'
 import * as Comlink from 'comlink'
 
 import CozyClient from 'cozy-client'
+import Minilog from 'cozy-minilog'
 
 import { ClientData, DataProxyWorker } from 'src/common/DataProxyInterface'
 import schema from 'src/doctypes'
-import { initIndexes, searchOnIndexes } from 'src/worker/search'
+import { deduplicateAndFlatten, initIndexes, searchOnIndexes } from 'src/worker/search'
+import { normalizeSearchResult } from 'src/worker/search/normalizeSearchResult'
 import { CozyDoc } from 'src/worker/search/types'
+
+const log = Minilog('👷‍♂️ [shared-worker]')
+Minilog.enable()
 
 let client: CozyClient | undefined = undefined
 let searchIndexes: FlexSearch.Document<CozyDoc, true>[] | undefined = undefined
 
 const dataProxy: DataProxyWorker = {
   setClient: async (clientData: ClientData) => {
+    log.debug('Received data for setting client')
     client = new CozyClient({
       uri: clientData.uri,
       token: clientData.token,
@@ -31,6 +37,7 @@ const dataProxy: DataProxyWorker = {
     }
   },
   search: async (query: string) => {
+    log.debug('Received data for search')
     if (!client) {
       throw new Error('Client is required to execute a seach, please initialize CozyClient')
     }
@@ -39,15 +46,22 @@ const dataProxy: DataProxyWorker = {
       return []
     }
 
-    console.log('[SEARCH] indexes : ', searchIndexes)
+    log.debug('[SEARCH] indexes : ', searchIndexes)
 
-    const results = searchOnIndexes(query, searchIndexes)
-    console.log('[SEARCH] results : ', JSON.stringify(results, null, 2));
-    return results.flatMap(res => {
-      return res.result.map(res2 => {
-        return {...res2.doc, type: 'file', title: res2.doc.name, name: res2.doc.path }
-      }) 
-    })
+    // const results = searchOnIndexes(query, searchIndexes)
+    // log.debug('[SEARCH] results : ', results)
+    // return results.flatMap(res => {
+    //   return res.result.map(res2 => {
+    //     return {...res2.doc, type: 'file', title: res2.doc.name, name: res2.doc.path }
+    //   }) 
+    // })
+
+    const allResults = searchOnIndexes(query, searchIndexes)
+    console.log('[SEARCH] results : ', allResults);
+    const results = deduplicateAndFlatten(allResults)
+    console.log('[SEARCH] dedup : ', results);
+
+    return results.map(res => normalizeSearchResult(client, res.doc))
   }
 }
 

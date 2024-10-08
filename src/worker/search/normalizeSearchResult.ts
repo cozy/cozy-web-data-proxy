@@ -26,8 +26,7 @@ const getSearchResultTitle = (doc: CozyDoc) => {
   }
 
   if (isIOCozyContact(doc)) {
-    // TODO: display name contact déjà calculé ?
-    return doc.fullname // TODO: adapt if there is no fullname
+    return doc.displayName
   }
 
   if (isIOCozyApp(doc)) {
@@ -43,7 +42,6 @@ const findMatchingValueInArray = (query: string, items: any[], attribute: string
   }
 }
 
-// TODO: compute the subtitle based on field match, if it is not the main title?
 const getSearchResultSubTitle = (client: CozyClient, searchResult: RawSearchResult, query: string) => {
   if (isIOCozyFile(searchResult.doc)) {
     return searchResult.doc.path
@@ -57,31 +55,21 @@ const getSearchResultSubTitle = (client: CozyClient, searchResult: RawSearchResu
       return null
     }
     console.log('look for field ', matchingField)
-    if (matchingField === 'email[]:address') {
-      matchingValue = findMatchingValueInArray(query, searchResult.doc.email, 'address')
-      if (!matchingValue) {
-        // No matching value found, but we now it's an email, so let's take the first one
-        return searchResult.doc.email && searchResult.doc.email[0]
+    if (matchingField.includes('[]:')) {
+      const tokens = matchingField.split('[]:')
+      if (tokens.length !== 2) {
+        return null
       }
-    } else if (matchingField === 'address[]:formattedAddress') {
-      matchingValue = findMatchingValueInArray(query, searchResult.doc.address, 'formattedAddress')
-      if (!matchingValue) {
-        // No matching value found, but we now it's an address, so let's take the first one
-        return searchResult.doc.address && searchResult.doc.address[0]
-      }
-    } else if (matchingField === 'phone[]:number') {
-      matchingValue = findMatchingValueInArray(query, searchResult.doc.phone, 'number')
-        if (!matchingValue) {
-        // No matching value found, but we now it's a phone, so let's take the first one
-        return searchResult.doc.phone && searchResult.doc.phone[0]
-      }
-    } else if (matchingField === 'cozy[]:url') {
-      matchingValue = findMatchingValueInArray(query, searchResult.doc.cozy, 'url')
-        if (!matchingValue) {
-        // No matching value found, but we now it's an cozy URL, so let's take the first one
-        return searchResult.doc.cozy && searchResult.doc.cozy[0]
-      }
-    } else {
+      const arrayAttributeName = tokens[0]
+      const valueAttribute = tokens[1]
+
+      const matchingArrayItem = searchResult.doc[arrayAttributeName] && searchResult.doc[arrayAttributeName].find(item => {
+        return (item[valueAttribute] && item[valueAttribute].includes(query))
+      })
+      matchingValue = matchingArrayItem[valueAttribute]
+    }
+
+   else {
       matchingValue = searchResult.doc[matchingField]
     }
     console.log('matching value contact : ', matchingValue);

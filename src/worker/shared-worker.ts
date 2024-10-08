@@ -21,6 +21,9 @@ const dataProxy: DataProxyWorker = {
     })
     client.instanceOptions = clientData.instanceOptions as {}
     client.capabilities = clientData.capabilities
+  },
+  search: async (query: string) => {
+    return 'Some Search Result'
   }
 }
 

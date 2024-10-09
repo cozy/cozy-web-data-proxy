@@ -14,10 +14,13 @@ Minilog.enable()
 
 let client: CozyClient | undefined = undefined
 let searchIndexes: SearchIndex[] | undefined = undefined
+let stateUpdatePointer = undefined
 
 const dataProxy: DataProxyWorker = {
   setClient: async (clientData: ClientData) => {
     log.debug('Received data for setting client')
+    if (client) return
+    updateState()
     client = new CozyClient({
       uri: clientData.uri,
       token: clientData.token,
@@ -31,7 +34,9 @@ const dataProxy: DataProxyWorker = {
     client.instanceOptions = clientData.instanceOptions as {}
     client.capabilities = clientData.capabilities
     if (!searchIndexes) {
+      updateState()
       const indexes = await initIndexes(client)
+      updateState()
       searchIndexes = indexes
     }
   },
@@ -63,7 +68,31 @@ const dataProxy: DataProxyWorker = {
     console.log('[SEARCH] sort : ', sortedResults);
 
     return sortedResults.map(res => normalizeSearchResult(client, res, query))
+  },
+  onStateUpdate: (callback) => {
+    stateUpdatePointer = callback
+
+    updateState()
   }
+}
+
+const updateState = () => {
+  const state = {}
+
+  if (client && searchIndexes) {
+    state.status = 'Ready'
+    stateUpdatePointer?.(state)
+    return
+  }
+
+  if (client) {
+    state.status = 'Client set'
+    stateUpdatePointer?.(state)
+    return
+  }
+
+  state.status = 'Waiting configuration'
+  stateUpdatePointer?.(state)
 }
 
 onconnect = e => {

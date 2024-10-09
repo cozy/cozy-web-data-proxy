@@ -4,17 +4,16 @@ import * as Comlink from 'comlink'
 import CozyClient from 'cozy-client'
 import Minilog from 'cozy-minilog'
 
-import { ClientData, DataProxyWorker } from 'src/common/DataProxyInterface'
+import { ClientData, DataProxyWorker, SearchIndex } from 'src/common/DataProxyInterface'
 import schema from 'src/doctypes'
-import { deduplicateAndFlatten, initIndexes, searchOnIndexes } from 'src/worker/search'
+import { deduplicateAndFlatten, initIndexes, searchOnIndexes, sortAndLimitSearchResults } from 'src/worker/search'
 import { normalizeSearchResult } from 'src/worker/search/normalizeSearchResult'
-import { CozyDoc } from 'src/worker/search/types'
 
 const log = Minilog('👷‍♂️ [shared-worker]')
 Minilog.enable()
 
 let client: CozyClient | undefined = undefined
-let searchIndexes: FlexSearch.Document<CozyDoc, true>[] | undefined = undefined
+let searchIndexes: SearchIndex[] | undefined = undefined
 
 const dataProxy: DataProxyWorker = {
   setClient: async (clientData: ClientData) => {
@@ -60,8 +59,10 @@ const dataProxy: DataProxyWorker = {
     console.log('[SEARCH] results : ', allResults);
     const results = deduplicateAndFlatten(allResults)
     console.log('[SEARCH] dedup : ', results);
+    const sortedResults = sortAndLimitSearchResults(results)
+    console.log('[SEARCH] sort : ', sortedResults);
 
-    return results.map(res => normalizeSearchResult(client, res, query))
+    return sortedResults.map(res => normalizeSearchResult(client, res, query))
   }
 }
 

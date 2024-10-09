@@ -1,13 +1,10 @@
 import CozyClient, { generateWebLink, models } from 'cozy-client'
 
-import { SearchResult } from 'src/common/DataProxyInterface'
+import { RawSearchResult, SearchResult } from 'src/common/DataProxyInterface'
 import { APPS_DOCTYPE, TYPE_DIRECTORY } from 'src/consts'
 import { CozyDoc, isIOCozyApp, isIOCozyContact, isIOCozyFile } from 'src/worker/search/types'
 
-export interface RawSearchResult {
-  fields: string[]
-  doc: CozyDoc
-}
+
 
 export const normalizeSearchResult = (client: CozyClient, searchResults: RawSearchResult, query: string): SearchResult => {
   const url = buildOpenURL(client, searchResults.doc)
@@ -34,13 +31,6 @@ const getSearchResultTitle = (doc: CozyDoc) => {
   }
 }
 
-const findMatchingValueInArray = (query: string, items: any[], attribute: string) => {
-  for (const item of items) {
-    if (item[attribute].includes(query)) {
-      return item[attribute]
-    }
-  }
-}
 
 const getSearchResultSubTitle = (client: CozyClient, searchResult: RawSearchResult, query: string) => {
   if (isIOCozyFile(searchResult.doc)) {

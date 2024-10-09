@@ -108,6 +108,7 @@ const indexDocs = (doctype: keyof typeof SEARCH_SCHEMA, docs: CozyDoc[]) => {
   const flexsearchIndex = new FlexSearch.Document<CozyDoc, true>({
     tokenize: 'forward',
     encode: encode_balance,
+    minlength: 2,
     document: {
       id: "_id",
       index: fieldsToIndex,

@@ -56,6 +56,9 @@ const getSearchResultSubTitle = (client: CozyClient, searchResult: RawSearchResu
       const matchingArrayItem = searchResult.doc[arrayAttributeName] && searchResult.doc[arrayAttributeName].find(item => {
         return (item[valueAttribute] && item[valueAttribute].includes(query))
       })
+      if (!matchingArrayItem) {
+        return null
+      }
       matchingValue = matchingArrayItem[valueAttribute]
     }
 

@@ -2,12 +2,15 @@ import FlexSearch from 'flexsearch'
 import * as Comlink from 'comlink'
 
 import CozyClient from 'cozy-client'
+import PouchLink from 'cozy-pouch-link'
 import Minilog from 'cozy-minilog'
 
 import { ClientData, DataProxyWorker, SearchIndex } from 'src/common/DataProxyInterface'
 import schema from 'src/doctypes'
 import { deduplicateAndFlatten, initIndexes, searchOnIndexes, sortAndLimitSearchResults } from 'src/worker/search'
 import { normalizeSearchResult } from 'src/worker/search/normalizeSearchResult'
+import { APPS_DOCTYPE, CONTACTS_DOCTYPE, FILES_DOCTYPE } from 'src/consts'
+import { platformWorker } from 'src/worker/data/platform'
 
 const log = Minilog('👷‍♂️ [shared-worker]')
 Minilog.enable()
@@ -21,6 +24,29 @@ const dataProxy: DataProxyWorker = {
     log.debug('Received data for setting client')
     if (client) return
     updateState()
+
+
+    const pouchLinkOptions = {
+      doctypes: [FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE],
+      initialSync: true,
+      platform: {...platformWorker},
+      doctypesReplicationOptions: {
+        [FILES_DOCTYPE]: {
+          strategy: 'fromRemote',
+          initialReplication: true
+        },
+        [CONTACTS_DOCTYPE]: {
+          strategy: 'fromRemote',
+          initialReplication: true
+        },
+        [APPS_DOCTYPE]: {
+          strategy: 'fromRemote',
+          initialReplication: true
+        }
+      }
+    }
+    console.log('pouch options : ', pouchLinkOptions);
+    
     client = new CozyClient({
       uri: clientData.uri,
       token: clientData.token,
@@ -30,9 +56,11 @@ const dataProxy: DataProxyWorker = {
       },
       schema,
       store: true,
+      links: [new PouchLink(pouchLinkOptions)]
     })
     client.instanceOptions = clientData.instanceOptions as {}
     client.capabilities = clientData.capabilities
+
     if (!searchIndexes) {
       updateState()
       const indexes = await initIndexes(client)

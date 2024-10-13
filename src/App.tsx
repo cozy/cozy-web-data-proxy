@@ -2,6 +2,7 @@ import React from 'react'
 
 import { useClient } from 'cozy-client'
 
+import { ParentWindowProvider } from '@/dataproxy/parent/ParentWindowProvider'
 import { SharedWorkerProvider } from '@/dataproxy/worker/SharedWorkerProvider'
 
 import './App.css'
@@ -20,7 +21,9 @@ const App = (): JSX.Element => {
 const WrappedApp = (): JSX.Element => {
   return (
     <SharedWorkerProvider>
-      <App />
+      <ParentWindowProvider>
+        <App />
+      </ParentWindowProvider>
     </SharedWorkerProvider>
   )
 }

@@ -1,17 +1,16 @@
 {
+  "extends": "cozy-tsconfig",
+  "include": ["src"],
+  "exclude": ["node_modules"],
   "compilerOptions": {
+    // override from cozy-tsconfig
     "target": "ES2020",
     "lib": ["DOM", "ES2020"],
-    "module": "ESNext",
-    "jsx": "react-jsx",
-    "noEmit": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "resolveJsonModule": true,
+    "emitDeclarationOnly": false,
+    "noEmit": true, // needed for swc to handle converting the TypeScript
     "moduleResolution": "bundler",
+    // new config
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src"]
 }

@@ -57,6 +57,11 @@ const config = [
               pattern: '**/*.styles',
               group: 'index',
               position: 'after'
+            },
+            {
+              pattern: '@/**',
+              group: 'internal',
+              position: 'after'
             }
           ],
           distinctGroup: true,
@@ -129,7 +134,8 @@ const ignores = [
   '*.output.js',
   'jest-setup.ts',
   'jest.config.ts',
-  'rsbuild.config.ts'
+  'rsbuild.config.ts',
+  'src/env.d.ts'
 ]
 
 module.exports = [

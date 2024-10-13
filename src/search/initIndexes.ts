@@ -60,9 +60,13 @@ const indexDocs = (
     }
   })
 
+  console.log('[INDEX] start index docs')
+  console.log('first doc to index: ', docs[0])
+  console.time('indexDocs')
   for (const doc of docs) {
     flexsearchIndex.add(doc)
   }
+  console.timeEnd('indexDocs')
 
   return flexsearchIndex
 }

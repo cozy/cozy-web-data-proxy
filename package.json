@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "rsbuild dev --open",
     "build": "rsbuild build",
-    "preview": "rsbuild preview"
+    "preview": "rsbuild preview",
+    "lint": "eslint -c eslint.config.js ."
   },
   "dependencies": {
     "cozy-client": "^49.0.0",

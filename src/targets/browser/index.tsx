@@ -3,8 +3,7 @@ import React from 'react'
 import { CozyProvider } from 'cozy-client'
 
 import App from '@/App'
-
-import { setupApp } from './setupApp'
+import { setupApp } from '@/targets/browser/setupApp'
 
 const init = function (): void {
   const { root, client } = setupApp()

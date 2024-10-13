@@ -2,6 +2,7 @@ import type { InstanceOptions } from 'cozy-client'
 import type { ClientCapabilities } from 'cozy-client/types/types'
 
 export interface DataProxyWorker {
+  search: (query: string) => Promise<unknown>
   setClient: (clientData: ClientData) => Promise<void>
 }
 

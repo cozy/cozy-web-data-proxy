@@ -38,7 +38,9 @@ export const SharedWorkerProvider = React.memo(
 
         await obj.setClient({
           uri,
-          token: token.token
+          token: token.token,
+          instanceOptions: client.instanceOptions,
+          capabilities: client.capabilities
         })
 
         setWorker(() => obj)

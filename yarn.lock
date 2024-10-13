@@ -1156,6 +1156,11 @@
   resolved "https://registry.yarnpkg.com/@types/semver/-/semver-7.5.8.tgz#8268a8c57a3e4abd25c165ecd36237db7948a55e"
   integrity sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==
 
+"@types/sharedworker@^0.0.126":
+  version "0.0.126"
+  resolved "https://registry.yarnpkg.com/@types/sharedworker/-/sharedworker-0.0.126.tgz#428060de38502ad2e61ee8530806c063f4342c2c"
+  integrity sha512-RucRz3GVt0UQD+TmG2CXiYPio9xFJ+ABoSoVL+u5QhRLakguFEvyYBXs02GcG+mLBh2PUNdhmishRt0/LU0NlQ==
+
 "@types/stack-utils@^2.0.0":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@types/stack-utils/-/stack-utils-2.0.3.tgz#6209321eb2c1712a7e7466422b8cb1fc0d9dd5d8"

@@ -2,6 +2,8 @@ import React from 'react'
 
 import { useClient } from 'cozy-client'
 
+import { SharedWorkerProvider } from '@/dataproxy/worker/SharedWorkerProvider'
+
 import './App.css'
 
 const App = (): JSX.Element => {
@@ -15,4 +17,12 @@ const App = (): JSX.Element => {
   )
 }
 
-export default App
+const WrappedApp = (): JSX.Element => {
+  return (
+    <SharedWorkerProvider>
+      <App />
+    </SharedWorkerProvider>
+  )
+}
+
+export default WrappedApp

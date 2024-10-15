@@ -1,6 +1,4 @@
 import FlexSearch from 'flexsearch'
-// @ts-ignore
-import { encode as encode_balance } from 'flexsearch/dist/module/lang/latin/balance'
 
 import CozyClient, { Q } from 'cozy-client'
 import Minilog from 'cozy-minilog'
@@ -17,6 +15,7 @@ import {
   SHARED_DRIVES_DIR_ID
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
+import { getSearchEncoder } from '@/search/helpers/getSearchEncoder'
 import { normalizeSearchResult } from '@/search/helpers/normalizeSearchResult'
 import {
   queryFilesForSearch,
@@ -57,6 +56,7 @@ class SearchEngine {
     if (!this.client) {
       return
     }
+    console.log('this.client', this.client)
     this.client.on('pouchlink:doctypesync:end', async (doctype: string) => {
       // TODO: lock to avoid conflict with concurrent index events?
       await this.indexDocsForSearch(doctype)
@@ -135,7 +135,7 @@ class SearchEngine {
 
     const flexsearchIndex = new FlexSearch.Document<CozyDoc, true>({
       tokenize: 'forward',
-      encode: encode_balance as FlexSearch.Encoders,
+      encode: getSearchEncoder(),
       minlength: 2,
       document: {
         id: '_id',

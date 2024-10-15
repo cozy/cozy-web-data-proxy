@@ -1,5 +1,15 @@
 import SearchEngine from './SearchEngine'
 
+jest.mock('cozy-client')
+jest.mock('flexsearch')
+jest.mock('flexsearch/dist/module/lang/latin/balance')
+
+jest.mock('@/search/helpers/client', () => ({
+  getPouchLink: jest.fn()
+}))
+jest.mock('@/search/helpers/getSearchEncoder', () => ({
+  getSearchEncoder: jest.fn()
+}))
 
 describe('SearchEngine.debouncedReplication', () => {
   let searchEngine: SearchEngine
@@ -8,7 +18,8 @@ describe('SearchEngine.debouncedReplication', () => {
   beforeEach(() => {
     jest.useFakeTimers() // Use fake timers to control the timing in tests
     mockClient = {
-      startReplication: jest.fn() // Mock the client method
+      startReplication: jest.fn(), // Mock the client method
+      on: jest.fn()
     }
     searchEngine = new SearchEngine(mockClient, 3000) // 3 second debounce time
   })

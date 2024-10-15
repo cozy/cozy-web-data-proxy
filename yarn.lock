@@ -303,7 +303,7 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@cozy/minilog@1.0.0":
+"@cozy/minilog@1.0.0", "@cozy/minilog@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@cozy/minilog/-/minilog-1.0.0.tgz#1acc1aad849261e931e255a5f181b638315f7b84"
   integrity sha512-IkDHF9CLh0kQeSEVsou59ar/VehvenpbEUjLfwhckJyOUqZnKAWmXy8qrBgMT5Loxr8Xjs2wmMnj0D67wP00eQ==
@@ -2178,6 +2178,14 @@ cozy-pouch-link@^49.5.0:
     cozy-client "^49.4.0"
     pouchdb-browser "^7.2.2"
     pouchdb-find "^7.2.2"
+
+cozy-realtime@^5.0.2:
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/cozy-realtime/-/cozy-realtime-5.0.2.tgz#d515e6625e4386c812e8a0ce505c2e3abfea2245"
+  integrity sha512-ncFgsb2BeaYyM+Uax/qbcnDC1n7hpLNAiaqnVD02ApDpN1Uy/2GUzbcAr5xpc1gK4jkp6+fb8FrqyL+vcxXRsg==
+  dependencies:
+    "@cozy/minilog" "^1.0.0"
+    cozy-device-helper "^3.1.0"
 
 cozy-stack-client@^49.0.0, cozy-stack-client@^49.4.0:
   version "49.4.0"

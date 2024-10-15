@@ -179,7 +179,8 @@ class SearchEngine {
 
       this.searchIndexes[doctype] = {
         index,
-        lastSeq: info?.update_seq
+        lastSeq: info?.update_seq,
+        lastUpdated: new Date().toISOString()
       }
       return this.searchIndexes[doctype]
     }
@@ -204,6 +205,7 @@ class SearchEngine {
     }
 
     searchIndex.lastSeq = changes.last_seq
+    searchIndex.lastUpdated = new Date().toISOString()
     return searchIndex
   }
 

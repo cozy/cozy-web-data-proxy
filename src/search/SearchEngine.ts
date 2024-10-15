@@ -46,6 +46,22 @@ class SearchEngine {
   constructor(client: CozyClient) {
     this.client = client
     this.searchIndexes = {}
+
+    this.indexOnReplicationChanges()
+  }
+
+  indexOnReplicationChanges(): void {
+    if (!this.client) {
+      return
+    }
+    this.client.on('pouchlink:doctypesync:end', async (doctype: string) => {
+      // TODO: lock to avoid conflict with concurrent index events?
+      const newIndex = await this.indexDocsForSearch(doctype)
+      if (newIndex) {
+        log('debug', `Index updated for doctype ${doctype}`)
+        this.searchIndexes[doctype] = newIndex
+      }
+    })
   }
 
   buildSearchIndex(

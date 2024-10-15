@@ -4,6 +4,7 @@ import { encode as encode_balance } from 'flexsearch/dist/module/lang/latin/bala
 
 import CozyClient, { Q } from 'cozy-client'
 import Minilog from 'cozy-minilog'
+import { RealtimePlugin } from 'cozy-realtime'
 
 import {
   SEARCH_SCHEMA,
@@ -11,10 +12,12 @@ import {
   FILES_DOCTYPE,
   CONTACTS_DOCTYPE,
   DOCTYPE_ORDER,
-  LIMIT_DOCTYPE_SEARCH
+  LIMIT_DOCTYPE_SEARCH,
+  REPLICATION_DEBOUNCE
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
 import { normalizeSearchResult } from '@/search/helpers/normalizeSearchResult'
+import { startReplicationWithDebounce } from '@/search/helpers/replication'
 import {
   queryFilesForSearch,
   queryAllContacts,
@@ -42,26 +45,75 @@ interface FlexSearchResultWithDoctype
 class SearchEngine {
   client: CozyClient
   searchIndexes: SearchIndexes
+  debouncedReplication: () => void
 
   constructor(client: CozyClient) {
     this.client = client
     this.searchIndexes = {}
 
-    this.indexOnReplicationChanges()
+    this.indexOnChanges()
+    this.debouncedReplication = startReplicationWithDebounce(
+      client,
+      REPLICATION_DEBOUNCE
+    )
   }
 
-  indexOnReplicationChanges(): void {
+  indexOnChanges(): void {
     if (!this.client) {
       return
     }
     this.client.on('pouchlink:doctypesync:end', async (doctype: string) => {
-      // TODO: lock to avoid conflict with concurrent index events?
-      const newIndex = await this.indexDocsForSearch(doctype)
-      if (newIndex) {
-        log('debug', `Index updated for doctype ${doctype}`)
-        this.searchIndexes[doctype] = newIndex
-      }
+      await this.indexDocsForSearch(doctype)
     })
+    this.client.on('login', () => {
+      // Ensure login is done before plugin register
+      this.client.registerPlugin(RealtimePlugin, {})
+      this.handleUpdatedOrCreatedDoc = this.handleUpdatedOrCreatedDoc.bind(this)
+      this.handleDeletedDoc = this.handleDeletedDoc.bind(this)
+
+      this.subscribeDoctype(this.client, FILES_DOCTYPE)
+      this.subscribeDoctype(this.client, CONTACTS_DOCTYPE)
+      this.subscribeDoctype(this.client, APPS_DOCTYPE)
+    })
+  }
+
+  subscribeDoctype(client: CozyClient, doctype: string): void {
+    const realtime = this.client.plugins.realtime
+    realtime.subscribe('created', doctype, this.handleUpdatedOrCreatedDoc)
+    realtime.subscribe('updated', doctype, this.handleUpdatedOrCreatedDoc)
+    realtime.subscribe('deleted', doctype, this.handleDeletedDoc)
+  }
+
+  handleUpdatedOrCreatedDoc(doc: CozyDoc): void {
+    const doctype: string | undefined = doc._type
+    if (!doctype) {
+      return
+    }
+    const searchIndex = this.searchIndexes?.[doctype]
+    if (!searchIndex) {
+      // No index yet: it will be done by querying the local db after first replication
+      return
+    }
+    log.debug('[REALTIME] index doc after update : ', doc)
+    searchIndex.index.add(doc)
+
+    this.debouncedReplication()
+  }
+
+  handleDeletedDoc(doc: CozyDoc): void {
+    const doctype: string | undefined = doc._type
+    if (!doctype) {
+      return
+    }
+    const searchIndex = this.searchIndexes?.[doctype]
+    if (!searchIndex) {
+      // No index yet: it will be done by querying the local db after first replication
+      return
+    }
+    log.debug('[REALTIME] remove doc from index after update : ', doc)
+    this.searchIndexes[doctype].index.remove(doc._id)
+
+    this.debouncedReplication()
   }
 
   buildSearchIndex(
@@ -88,13 +140,16 @@ class SearchEngine {
     return flexsearchIndex
   }
 
-  async indexDocsForSearch(doctype: string): Promise<SearchIndex> {
+  async indexDocsForSearch(doctype: string): Promise<SearchIndex | null> {
     const searchIndex = this.searchIndexes[doctype]
     const pouchLink = getPouchLink(this.client)
 
-    if (!pouchLink) return null
+    if (!pouchLink) {
+      return null
+    }
 
     if (!searchIndex) {
+      // First creation of search index
       const docs = await this.client.queryAll(Q(doctype).limitBy(null))
       const index = this.buildSearchIndex(doctype, docs)
       const info = await pouchLink.getDbInfo(doctype)
@@ -106,6 +161,10 @@ class SearchEngine {
       return this.searchIndexes[doctype]
     }
 
+    // Incremental index update
+    // At this point, the search index are supposed to be already up-to-date, 
+    // thanks to the realtime.
+    // However, we check it is actually the case for safety, and update the lastSeq
     const lastSeq = searchIndex.lastSeq || 0
     const changes = await pouchLink.getChanges(doctype, {
       include_docs: true,
@@ -139,9 +198,9 @@ class SearchEngine {
 
     log.debug('Finished initializing indexes')
     this.searchIndexes = {
-      [FILES_DOCTYPE]: { index: filesIndex, lastSeq: null },
-      [CONTACTS_DOCTYPE]: { index: contactsIndex, lastSeq: null },
-      [APPS_DOCTYPE]: { index: appsIndex, lastSeq: null }
+      [FILES_DOCTYPE]: { index: filesIndex, lastSeq: 0 },
+      [CONTACTS_DOCTYPE]: { index: contactsIndex, lastSeq: 0 },
+      [APPS_DOCTYPE]: { index: appsIndex, lastSeq: 0 }
     }
     return this.searchIndexes
   }
@@ -172,6 +231,8 @@ class SearchEngine {
         log.warn('[SEARCH] No search index available for ', doctype)
         continue
       }
+      // TODO: do not use flexsearch store and rely on pouch storage?
+      // It's better for memory, but might slow down search queries
       const indexResults = index.index.search(query, LIMIT_DOCTYPE_SEARCH, {
         enrich: true
       })

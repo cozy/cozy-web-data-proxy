@@ -12,11 +12,7 @@ import {
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
 import schema from '@/doctypes'
 import SearchEngine from '@/search/SearchEngine'
-import {
-  FILES_DOCTYPE,
-  CONTACTS_DOCTYPE,
-  APPS_DOCTYPE
-} from '@/search/consts'
+import { FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '@/search/consts'
 
 const log = Minilog('👷‍♂️ [shared-worker]')
 Minilog.enable()

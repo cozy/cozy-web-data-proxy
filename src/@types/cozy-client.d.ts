@@ -170,6 +170,7 @@ declare module 'cozy-client' {
   }
 
   export default class CozyClient {
+    plugins: any
     constructor(rawOptions?: ClientOptions)
     getStackClient(): StackClient
     getInstanceOptions(): InstanceOptions

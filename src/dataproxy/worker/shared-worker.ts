@@ -12,13 +12,17 @@ import {
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
 import schema from '@/doctypes'
 import SearchEngine from '@/search/SearchEngine'
-import { FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '@/search/consts'
+import {
+  FILES_DOCTYPE,
+  CONTACTS_DOCTYPE,
+  APPS_DOCTYPE
+} from '@/search/consts'
 
 const log = Minilog('👷‍♂️ [shared-worker]')
 Minilog.enable()
 
 let client: CozyClient | undefined = undefined
-let searchEngine: SearchEngine = null
+let searchEngine: SearchEngine
 
 const broadcastChannel = new BroadcastChannel('DATA_PROXY_BROADCAST_CHANANEL')
 
@@ -32,6 +36,7 @@ const dataProxy: DataProxyWorker = {
     const pouchLinkOptions = {
       doctypes: [FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE],
       initialSync: true,
+      periodicSync: false,
       platform: { ...platformWorker },
       doctypesReplicationOptions: {
         [FILES_DOCTYPE]: {

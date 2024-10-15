@@ -59,11 +59,7 @@ class SearchEngine {
     }
     this.client.on('pouchlink:doctypesync:end', async (doctype: string) => {
       // TODO: lock to avoid conflict with concurrent index events?
-      const newIndex = await this.indexDocsForSearch(doctype)
-      if (newIndex) {
-        log('debug', `Index updated for doctype ${doctype}`)
-        this.searchIndexes[doctype] = newIndex
-      }
+      await this.indexDocsForSearch(doctype)
     })
     this.client.on('login', () => {
       // Ensure login is done before plgin register
@@ -112,6 +108,23 @@ class SearchEngine {
     }
     log.debug('[REALTIME] remove doc from index after update : ', doc)
     this.searchIndexes[doctype].index.remove(doc._id)
+  }
+
+  startReplicationWithDebounce(
+    client: { startReplication: () => void },
+    REPLICATION_DEBOUNCE: number
+  ) {
+    let timeoutId: NodeJS.Timeout | null = null
+
+    return (): void => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+
+      timeoutId = setTimeout(() => {
+        client.startReplication()
+      }, REPLICATION_DEBOUNCE)
+    }
   }
 
   buildSearchIndex(

@@ -15,6 +15,8 @@ export const SEARCH_SCHEMA = {
   'io.cozy.apps': ['slug', 'name']
 }
 
+export const REPLICATION_INTERVAL = 60 * 60 * 1000 // 1h
+
 export const FILES_DOCTYPE = 'io.cozy.files'
 export const CONTACTS_DOCTYPE = 'io.cozy.contacts'
 export const APPS_DOCTYPE = 'io.cozy.apps'

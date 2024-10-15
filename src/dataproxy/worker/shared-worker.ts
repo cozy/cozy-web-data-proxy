@@ -12,7 +12,12 @@ import {
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
 import schema from '@/doctypes'
 import SearchEngine from '@/search/SearchEngine'
-import { FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '@/search/consts'
+import {
+  FILES_DOCTYPE,
+  CONTACTS_DOCTYPE,
+  APPS_DOCTYPE,
+  REPLICATION_INTERVAL
+} from '@/search/consts'
 
 const log = Minilog('👷‍♂️ [shared-worker]')
 Minilog.enable()
@@ -32,16 +37,23 @@ const dataProxy: DataProxyWorker = {
     const pouchLinkOptions = {
       doctypes: [FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE],
       initialSync: true,
+      replicateOnce: true,
       platform: { ...platformWorker },
       doctypesReplicationOptions: {
         [FILES_DOCTYPE]: {
-          strategy: 'fromRemote'
+          strategy: 'fromRemote',
+          live: true,
+          retry: true
         },
         [CONTACTS_DOCTYPE]: {
-          strategy: 'fromRemote'
+          strategy: 'fromRemote',
+          live: true,
+          retry: true
         },
         [APPS_DOCTYPE]: {
-          strategy: 'fromRemote'
+          strategy: 'fromRemote',
+          live: true,
+          retry: true
         }
       }
     }

@@ -1,0 +1,114 @@
+import PouchDB from 'pouchdb-browser'
+
+const dbName = 'sharedWorkerStorage'
+let db: IDBDatabase | null = null
+
+const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    if (db) {
+      return resolve(db)
+    }
+
+    const request = indexedDB.open(dbName, 1)
+
+    request.onupgradeneeded = (event: IDBVersionChangeEvent): void => {
+      const database = (event.target as IDBOpenDBRequest).result
+      db = database
+      if (!db.objectStoreNames.contains('store')) {
+        db.createObjectStore('store', { keyPath: 'key' })
+      }
+    }
+
+    request.onsuccess = (event: Event): void => {
+      db = (event.target as IDBOpenDBRequest).result
+      resolve(db)
+    }
+
+    request.onerror = (event: Event): void => {
+      reject((event.target as IDBOpenDBRequest).error)
+    }
+  })
+}
+
+// Define the storage object with TypeScript types
+const storage = {
+  getItem: async (key: string): Promise<any> => {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('store', 'readonly')
+      const store = transaction.objectStore('store')
+      const request = store.get(key)
+
+      request.onsuccess = (): void => {
+        resolve(request.result ? request.result.value : null)
+      }
+
+      request.onerror = (): void => {
+        reject(request.error)
+      }
+    })
+  },
+
+  setItem: async (key: string, value: any): Promise<void> => {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('store', 'readwrite')
+      const store = transaction.objectStore('store')
+      const request = store.put({ key, value })
+
+      request.onsuccess = (): void => {
+        resolve()
+      }
+
+      request.onerror = (): void => {
+        reject(request.error)
+      }
+    })
+  },
+
+  removeItem: async (key: string): Promise<void> => {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('store', 'readwrite')
+      const store = transaction.objectStore('store')
+      const request = store.delete(key)
+
+      request.onsuccess = (): void => {
+        resolve()
+      }
+
+      request.onerror = (): void => {
+        reject(request.error)
+      }
+    })
+  }
+}
+
+// Define the event handling object with proper types
+const events = {
+  addEventListener: (
+    eventName: string,
+    handler: EventListenerOrEventListenerObject
+  ): void => {
+    self.addEventListener(eventName, handler)
+  },
+  removeEventListener: (
+    eventName: string,
+    handler: EventListenerOrEventListenerObject
+  ): void => {
+    self.removeEventListener(eventName, handler)
+  }
+}
+
+// Define the isOnline function with the proper type
+const isOnline = async (): Promise<boolean> => {
+  return self.navigator.onLine
+}
+
+// Export the platformWorker object with TypeScript types
+export const platformWorker = {
+  storage,
+  events,
+  pouchAdapter: PouchDB,
+  isOnline
+}

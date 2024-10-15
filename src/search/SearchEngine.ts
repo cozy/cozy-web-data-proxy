@@ -4,6 +4,7 @@ import { encode as encode_balance } from 'flexsearch/dist/module/lang/latin/bala
 
 import CozyClient, { Q } from 'cozy-client'
 import Minilog from 'cozy-minilog'
+import { RealtimePlugin } from 'cozy-realtime'
 
 import {
   SEARCH_SCHEMA,
@@ -49,10 +50,10 @@ class SearchEngine {
     this.client = client
     this.searchIndexes = {}
 
-    this.indexOnReplicationChanges()
+    this.indexOnChanges()
   }
 
-  indexOnReplicationChanges(): void {
+  indexOnChanges(): void {
     if (!this.client) {
       return
     }
@@ -64,6 +65,53 @@ class SearchEngine {
         this.searchIndexes[doctype] = newIndex
       }
     })
+    this.client.on('login', () => {
+      // Ensure login is done before plgin register
+      this.client.registerPlugin(RealtimePlugin, null)
+      const realtime = this.client.plugins.realtime
+      this.handleUpdatedDoc = this.handleUpdatedDoc.bind(this)
+      this.handleDeletedDoc = this.handleDeletedDoc.bind(this)
+      // TODO: refactor
+      realtime.subscribe('created', FILES_DOCTYPE, this.handleUpdatedDoc)
+      realtime.subscribe('updated', FILES_DOCTYPE, this.handleUpdatedDoc)
+      realtime.subscribe('deleted', FILES_DOCTYPE, this.handleDeletedDoc)
+
+      realtime.subscribe('created', CONTACTS_DOCTYPE, this.handleUpdatedDoc)
+      realtime.subscribe('updated', CONTACTS_DOCTYPE, this.handleUpdatedDoc)
+      realtime.subscribe('deleted', CONTACTS_DOCTYPE, this.handleDeletedDoc)
+
+      realtime.subscribe('created', APPS_DOCTYPE, this.handleUpdatedDoc)
+      realtime.subscribe('updated', APPS_DOCTYPE, this.handleUpdatedDoc)
+      realtime.subscribe('deleted', APPS_DOCTYPE, this.handleDeletedDoc)
+    })
+  }
+
+  handleUpdatedDoc(doc: CozyDoc): void {
+    const doctype: string = doc._type
+    if (!doctype) {
+      return
+    }
+    const searchIndex = this.searchIndexes?.[doctype]
+    if (!searchIndex) {
+      // No index yet: it will be done by querying the local db
+      return
+    }
+    log.debug('[REALTIME] index doc after update : ', doc)
+    searchIndex.index.add(doc)
+  }
+
+  handleDeletedDoc(doc: CozyDoc): void {
+    const doctype: string = doc._type
+    if (!doctype) {
+      return
+    }
+    const searchIndex = this.searchIndexes?.[doctype]
+    if (!searchIndex) {
+      // No index yet: it will be done by querying the local db
+      return
+    }
+    log.debug('[REALTIME] remove doc from index after update : ', doc)
+    this.searchIndexes[doctype].index.remove(doc._id)
   }
 
   buildSearchIndex(

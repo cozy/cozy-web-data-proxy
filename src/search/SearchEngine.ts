@@ -1,6 +1,4 @@
 import FlexSearch from 'flexsearch'
-// @ts-ignore
-import { encode as encode_balance } from 'flexsearch/dist/module/lang/latin/balance'
 
 import CozyClient, { Q } from 'cozy-client'
 import Minilog from 'cozy-minilog'
@@ -16,6 +14,7 @@ import {
   REPLICATION_DEBOUNCE
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
+import { getSearchEncoder } from '@/search/helpers/getSearchEncoder'
 import { normalizeSearchResult } from '@/search/helpers/normalizeSearchResult'
 import { startReplicationWithDebounce } from '@/search/helpers/replication'
 import {
@@ -124,7 +123,7 @@ class SearchEngine {
 
     const flexsearchIndex = new FlexSearch.Document<CozyDoc, true>({
       tokenize: 'forward',
-      encode: encode_balance as FlexSearch.Encoders,
+      encode: getSearchEncoder(),
       minlength: 2,
       document: {
         id: '_id',
@@ -162,7 +161,7 @@ class SearchEngine {
     }
 
     // Incremental index update
-    // At this point, the search index are supposed to be already up-to-date, 
+    // At this point, the search index are supposed to be already up-to-date,
     // thanks to the realtime.
     // However, we check it is actually the case for safety, and update the lastSeq
     const lastSeq = searchIndex.lastSeq || 0

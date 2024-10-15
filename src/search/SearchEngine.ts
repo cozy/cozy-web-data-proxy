@@ -11,7 +11,9 @@ import {
   FILES_DOCTYPE,
   CONTACTS_DOCTYPE,
   DOCTYPE_ORDER,
-  LIMIT_DOCTYPE_SEARCH
+  LIMIT_DOCTYPE_SEARCH,
+  ROOT_DIR_ID,
+  SHARED_DRIVES_DIR_ID
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
 import { normalizeSearchResult } from '@/search/helpers/normalizeSearchResult'
@@ -82,10 +84,25 @@ class SearchEngine {
     })
 
     for (const doc of docs) {
-      flexsearchIndex.add(doc)
+      if (this.shouldIndexDoc(doc)) {
+        flexsearchIndex.add(doc)
+      }
     }
 
     return flexsearchIndex
+  }
+
+  shouldIndexDoc(doc: CozyDoc): boolean {
+    if (isIOCozyFile(doc)) {
+      const notInTrash = !doc.trashed && !/^\/\.cozy_trash/.test(doc.path)
+      const notRootDir = doc._id !== ROOT_DIR_ID
+      // Shared drives folder to be hidden in search.
+      // The files inside it though must appear. Thus only the file with the folder ID is filtered out.
+      const notSharedDrivesDir = doc._id !== SHARED_DRIVES_DIR_ID
+
+      return notInTrash && notRootDir && notSharedDrivesDir
+    }
+    return true
   }
 
   async indexDocsForSearch(doctype: string): Promise<SearchIndex> {

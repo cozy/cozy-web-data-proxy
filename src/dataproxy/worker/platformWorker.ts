@@ -30,7 +30,6 @@ const openDB = (): Promise<IDBDatabase> => {
   })
 }
 
-// Define the storage object with TypeScript types
 const storage = {
   getItem: async (key: string): Promise<any> => {
     const db = await openDB()
@@ -84,7 +83,6 @@ const storage = {
   }
 }
 
-// Define the event handling object with proper types
 const events = {
   addEventListener: (
     eventName: string,
@@ -100,12 +98,10 @@ const events = {
   }
 }
 
-// Define the isOnline function with the proper type
 const isOnline = async (): Promise<boolean> => {
   return self.navigator.onLine
 }
 
-// Export the platformWorker object with TypeScript types
 export const platformWorker = {
   storage,
   events,

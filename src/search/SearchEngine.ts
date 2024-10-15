@@ -95,17 +95,20 @@ class SearchEngine {
     if (!pouchLink) return null
 
     if (!searchIndex) {
+      // First search indexing
       const docs = await this.client.queryAll(Q(doctype).limitBy(null))
       const index = this.buildSearchIndex(doctype, docs)
       const info = await pouchLink.getDbInfo(doctype)
 
       this.searchIndexes[doctype] = {
         index,
-        lastSeq: info?.update_seq
+        lastSeq: info?.update_seq,
+        lastUpdated: new Date().toISOString()
       }
       return this.searchIndexes[doctype]
     }
 
+    // Incremental search indexing
     const lastSeq = searchIndex.lastSeq || 0
     const changes = await pouchLink.getChanges(doctype, {
       include_docs: true,
@@ -122,6 +125,7 @@ class SearchEngine {
     }
 
     searchIndex.lastSeq = changes.last_seq
+    searchIndex.lastUpdated = new Date().toISOString()
     return searchIndex
   }
 

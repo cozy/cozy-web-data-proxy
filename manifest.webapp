@@ -2,14 +2,14 @@
   "name": "cozy-data-proxy",
   "slug": "dataproxy",
   "icon": "icon.svg",
-  "categories": [],
+  "categories": ["cozy"],
   "version": "0.1.0",
   "licence": "AGPL-3.0",
-  "editor": "",
-  "source": "https://github.com/cozy/cozy-web-data-proxy.git@build",
+  "editor": "Cozy",
+  "source": "https://github.com/cozy/cozy-web-data-proxy",
   "developer": {
     "name": "cozy",
-    "url": ""
+    "url": "https://cozy.io"
   },
   "routes": {
     "/": {

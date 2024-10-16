@@ -46,6 +46,9 @@ export default defineConfig({
             },
             {
               from: 'LICENSE'
+            },
+            {
+              from: 'icon.svg'
             }
           ],
         })

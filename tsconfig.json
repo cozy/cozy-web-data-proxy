@@ -1,0 +1,20 @@
+{
+  "extends": "cozy-tsconfig",
+  "include": ["src"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    // override from cozy-tsconfig
+    "target": "ES2020",
+    "lib": ["DOM", "ES2020"],
+    "emitDeclarationOnly": false,
+    "noEmit": true, // needed for swc to handle converting the TypeScript
+    "moduleResolution": "bundler",
+    // new config
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "manifest.webapp": ["./manifest.webapp"]
+    }
+  },
+}

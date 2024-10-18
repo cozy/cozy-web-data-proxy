@@ -11,7 +11,9 @@ import {
   CONTACTS_DOCTYPE,
   DOCTYPE_ORDER,
   LIMIT_DOCTYPE_SEARCH,
-  REPLICATION_DEBOUNCE
+  REPLICATION_DEBOUNCE,
+  ROOT_DIR_ID,
+  SHARED_DRIVES_DIR_ID
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
 import { getSearchEncoder } from '@/search/helpers/getSearchEncoder'
@@ -94,7 +96,7 @@ class SearchEngine {
       return
     }
     log.debug('[REALTIME] index doc after update : ', doc)
-    searchIndex.index.add(doc)
+    this.addDocToIndex(searchIndex.index, doc)
 
     this.debouncedReplication()
   }
@@ -133,10 +135,32 @@ class SearchEngine {
     })
 
     for (const doc of docs) {
-      flexsearchIndex.add(doc)
+      this.addDocToIndex(flexsearchIndex, doc)
     }
 
     return flexsearchIndex
+  }
+
+  addDocToIndex(
+    flexsearchIndex: FlexSearch.Document<CozyDoc, true>,
+    doc: CozyDoc
+  ): void {
+    if (this.shouldIndexDoc(doc)) {
+      flexsearchIndex.add(doc)
+    }
+  }
+
+  shouldIndexDoc(doc: CozyDoc): boolean {
+    if (isIOCozyFile(doc)) {
+      const notInTrash = !doc.trashed && !/^\/\.cozy_trash/.test(doc.path)
+      const notRootDir = doc._id !== ROOT_DIR_ID
+      // Shared drives folder to be hidden in search.
+      // The files inside it though must appear. Thus only the file with the folder ID is filtered out.
+      const notSharedDrivesDir = doc._id !== SHARED_DRIVES_DIR_ID
+
+      return notInTrash && notRootDir && notSharedDrivesDir
+    }
+    return true
   }
 
   async indexDocsForSearch(doctype: string): Promise<SearchIndex | null> {
@@ -175,7 +199,7 @@ class SearchEngine {
         searchIndex.index.remove(change.id)
       } else {
         const normalizedDoc = { ...change.doc, _type: doctype }
-        searchIndex.index.add(normalizedDoc)
+        this.addDocToIndex(searchIndex.index, normalizedDoc)
       }
     }
 

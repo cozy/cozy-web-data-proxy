@@ -239,7 +239,7 @@ class SearchEngine {
 
     const allResults = this.searchOnIndexes(query)
     const results = this.deduplicateAndFlatten(allResults)
-    const sortedResults = this.sortAndLimitSearchResults(results)
+    const sortedResults = this.sortSearchResults(results)
 
     return sortedResults
       .map(res => normalizeSearchResult(this.client, res, query))
@@ -256,7 +256,8 @@ class SearchEngine {
       }
       // TODO: do not use flexsearch store and rely on pouch storage?
       // It's better for memory, but might slow down search queries
-      const indexResults = index.index.search(query, LIMIT_DOCTYPE_SEARCH, {
+      const indexResults = index.index.search(query, {
+        limit: LIMIT_DOCTYPE_SEARCH,
         enrich: true
       })
       const newResults = indexResults.map(res => ({
@@ -286,13 +287,6 @@ class SearchEngine {
     })
 
     return [...resultMap.values()]
-  }
-
-  sortAndLimitSearchResults(
-    searchResults: RawSearchResult[]
-  ): RawSearchResult[] {
-    const sortedResults = this.sortSearchResults(searchResults)
-    return this.limitSearchResults(sortedResults)
   }
 
   compareStrings(str1: string, str2: string): number {
@@ -339,27 +333,6 @@ class SearchEngine {
       return aRes.doc.type === 'directory' ? -1 : 1
     }
     return this.compareStrings(aRes.doc.name, bRes.doc.name)
-  }
-
-  limitSearchResults(searchResults: RawSearchResult[]): RawSearchResult[] {
-    const limitedResults = {
-      [APPS_DOCTYPE]: [],
-      [CONTACTS_DOCTYPE]: [],
-      [FILES_DOCTYPE]: []
-    }
-
-    searchResults.forEach(item => {
-      const type = item.doctype as SearchedDoctype
-      if (limitedResults[type].length < LIMIT_DOCTYPE_SEARCH) {
-        limitedResults[type].push(item)
-      }
-    })
-
-    return [
-      ...limitedResults[APPS_DOCTYPE],
-      ...limitedResults[CONTACTS_DOCTYPE],
-      ...limitedResults[FILES_DOCTYPE]
-    ]
   }
 }
 

@@ -271,37 +271,50 @@ class SearchEngine {
     return this.limitSearchResults(sortedResults)
   }
 
+  compareStrings(str1: string, str2: string): number {
+    return str1.localeCompare(str2, undefined, { numeric: true })
+  }
+
   sortSearchResults(searchResults: RawSearchResult[]): RawSearchResult[] {
     return searchResults.sort((a, b) => {
       const doctypeComparison =
         DOCTYPE_ORDER[a.doctype] - DOCTYPE_ORDER[b.doctype]
       if (doctypeComparison !== 0) return doctypeComparison
-
       if (
         a.doctype === APPS_DOCTYPE &&
         isIOCozyApp(a.doc) &&
         isIOCozyApp(b.doc)
       ) {
-        return a.doc.slug.localeCompare(b.doc.slug)
+        return this.compareStrings(a.doc.slug, b.doc.slug)
       } else if (
         a.doctype === CONTACTS_DOCTYPE &&
         isIOCozyContact(a.doc) &&
         isIOCozyContact(b.doc)
       ) {
-        return a.doc.displayName.localeCompare(b.doc.displayName)
+        return this.compareStrings(a.doc.displayName, b.doc.displayName)
       } else if (
         a.doctype === FILES_DOCTYPE &&
         isIOCozyFile(a.doc) &&
         isIOCozyFile(b.doc)
       ) {
-        if (a.doc.type !== b.doc.type) {
-          return a.doc.type === 'directory' ? -1 : 1
-        }
-        return a.doc.name.localeCompare(b.doc.name)
+        return this.sortFiles(a, b)
       }
 
       return 0
     })
+  }
+
+  sortFiles(aRes: RawSearchResult, bRes: RawSearchResult): number {
+    if (!isIOCozyFile(aRes.doc) || !isIOCozyFile(bRes.doc)) {
+      return 0
+    }
+    if (!aRes.fields.includes('name') || !bRes.fields.includes('name')) {
+      return aRes.fields.includes('name') ? -1 : 1
+    }
+    if (aRes.doc.type !== bRes.doc.type) {
+      return aRes.doc.type === 'directory' ? -1 : 1
+    }
+    return this.compareStrings(aRes.doc.name, bRes.doc.name)
   }
 
   limitSearchResults(searchResults: RawSearchResult[]): RawSearchResult[] {

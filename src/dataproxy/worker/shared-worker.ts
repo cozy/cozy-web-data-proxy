@@ -85,13 +85,12 @@ const updateState = (): void => {
 
   if (client && searchEngine && searchEngine.searchIndexes) {
     state.status = 'Ready'
-    state.indexLength = Object.keys(searchEngine.searchIndexes).map(
-      (indexKey: string) => ({
-        doctype: indexKey,
+    state.indexLength = Object.entries(searchEngine.searchIndexes).map(
+      ([doctype, searchIndex]) => ({
+        doctype,
         // @ts-expect-error index.store is not TS typed
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        count: Object.keys(searchEngine.searchIndexes[indexKey].index.store)
-          .length
+        count: Object.keys(searchIndex.index.store).length
       })
     )
     broadcastChannel.postMessage(state)

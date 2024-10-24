@@ -122,19 +122,30 @@ describe('sortSearchResults', () => {
       {
         doctype: FILES_DOCTYPE,
         doc: {
-          name: 'DirName',
+          name: 'DirName1',
           path: 'test1/path',
           type: 'directory',
           _type: FILES_DOCTYPE
         },
         fields: ['path']
+      },
+      {
+        doctype: FILES_DOCTYPE,
+        doc: {
+          name: 'DirName2',
+          path: 'test1/path',
+          type: 'directory',
+          _type: FILES_DOCTYPE
+        },
+        fields: ['name']
       }
     ]
 
     const sortedResults = searchEngine.sortSearchResults(searchResults)
 
-    expect(sortedResults[0].doc.name).toBe('test1') // File match on name
-    expect(sortedResults[1].doc.name).toBe('test11') // File match on name
-    expect(sortedResults[2].doc.name).toBe('DirName') // Directory
+    expect(sortedResults[0].doc.name).toBe('DirName2') // Dir match on name
+    expect(sortedResults[1].doc.name).toBe('test1') // File match on name
+    expect(sortedResults[2].doc.name).toBe('test11') // File match on name
+    expect(sortedResults[3].doc.name).toBe('DirName1') // Directory
   })
 })

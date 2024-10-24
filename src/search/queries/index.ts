@@ -1,14 +1,11 @@
 import CozyClient, { Q } from 'cozy-client'
 import { IOCozyFile } from 'cozy-client/types/types'
 
+import { CONTACTS_DOCTYPE, APPS_DOCTYPE, TYPE_DIRECTORY } from '@/search/consts'
 import {
-  CONTACTS_DOCTYPE,
-  APPS_DOCTYPE,
-  TYPE_DIRECTORY,
-  ROOT_DIR_ID,
-  SHARED_DRIVES_DIR_ID
-} from '@/search/consts'
-import { normalizeFile } from '@/search/helpers/normalizeFile'
+  normalizeFileWithFolders,
+  shouldKeepFile
+} from '@/search/helpers/normalizeFile'
 import { CozyDoc } from '@/search/types'
 
 interface DBRow {
@@ -32,30 +29,9 @@ export const queryFilesForSearch = async (
   const files = resp.rows.map(row => ({ id: row.id, ...row.doc }) as IOCozyFile)
   const folders = files.filter(file => file.type === TYPE_DIRECTORY)
 
-  const notInTrash = (file: IOCozyFile): boolean =>
-    // @ts-expect-error TODO: file.trashed is not TS typed in CozyClient
-    !file.trashed && !/^\/\.cozy_trash/.test(file.path ?? '')
-
-  const notOrphans = (file: IOCozyFile): boolean =>
-    folders.find(folder => folder._id === file.dir_id) !== undefined
-
-  const notRoot = (file: IOCozyFile): boolean => file._id !== ROOT_DIR_ID
-
-  // Shared drives folder to be hidden in search.
-  // The files inside it though must appear. Thus only the file with the folder ID is filtered out.
-  const notSharedDrivesDir = (file: IOCozyFile): boolean =>
-    file._id !== SHARED_DRIVES_DIR_ID
-
-  const normalizedFilesPrevious = files.filter(
-    file =>
-      notInTrash(file) &&
-      notOrphans(file) &&
-      notRoot(file) &&
-      notSharedDrivesDir(file)
-  )
-
-  const normalizedFiles = normalizedFilesPrevious.map(file =>
-    normalizeFile(folders, file)
+  const filteredFiles = files.filter(file => shouldKeepFile(file))
+  const normalizedFiles = filteredFiles.map(file =>
+    normalizeFileWithFolders(folders, file)
   )
 
   return normalizedFiles

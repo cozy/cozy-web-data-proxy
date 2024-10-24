@@ -145,14 +145,6 @@ declare module 'cozy-client' {
     }[]
   }
 
-  interface MissingFileDocumentAttributes {
-    md5sum: string
-  }
-
-  type IOCozyFile = {
-    attributes: MissingFileDocumentAttributes & FileDocument
-  } & CozyClientDocument
-
   interface Collection {
     findReferencedBy: (
       params: object

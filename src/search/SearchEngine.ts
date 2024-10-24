@@ -83,7 +83,7 @@ class SearchEngine {
 
   subscribeDoctype(client: CozyClient, doctype: string): void {
     /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-    const realtime = this.client.plugins.realtime
+    const realtime = client.plugins.realtime
     realtime.subscribe('created', doctype, this.handleUpdatedOrCreatedDoc)
     realtime.subscribe('updated', doctype, this.handleUpdatedOrCreatedDoc)
     realtime.subscribe('deleted', doctype, this.handleDeletedDoc)
@@ -181,10 +181,21 @@ class SearchEngine {
 
     if (!searchIndex) {
       // First creation of search index
+      const startTimeQ = performance.now()
       const docs = await this.client.queryAll<CozyDoc[]>(
         Q(doctype).limitBy(null)
       )
+      const endTimeQ = performance.now()
+      log.debug(
+        `Query ${docs.length} docs doctype ${doctype} took ${(endTimeQ - startTimeQ).toFixed(2)} ms`
+      )
+
+      const startTimeIndex = performance.now()
       const index = this.buildSearchIndex(doctype, docs)
+      const endTimeIndex = performance.now()
+      log.debug(
+        `Create ${doctype} index took ${(endTimeIndex - startTimeIndex).toFixed(2)} ms`
+      )
       const info = await pouchLink.getDbInfo(doctype)
 
       this.searchIndexes[doctype] = {
@@ -249,7 +260,7 @@ class SearchEngine {
     return this.searchIndexes
   }
 
-  search(query: string): SearchResult[] {
+  async search(query: string): Promise<SearchResult[]> {
     log.debug('[SEARCH] indexes : ', this.searchIndexes)
 
     if (!this.searchIndexes) {
@@ -262,9 +273,12 @@ class SearchEngine {
     const results = this.deduplicateAndFlatten(allResults)
     const sortedResults = this.sortSearchResults(results)
 
-    return sortedResults
-      .map(res => normalizeSearchResult(this.client, res, query))
-      .filter(res => res.title)
+    const normResults: SearchResult[] = []
+    for (const res of sortedResults) {
+      const normalizedRes = await normalizeSearchResult(this.client, res, query)
+      normResults.push(normalizedRes)
+    }
+    return normResults.filter(res => res.title)
   }
 
   searchOnIndexes(query: string): FlexSearchResultWithDoctype[] {
@@ -355,11 +369,14 @@ class SearchEngine {
       return 0
     }
     if (!aRes.fields.includes('name') || !bRes.fields.includes('name')) {
+      // First, sort docs with a match on the name field
       return aRes.fields.includes('name') ? -1 : 1
     }
     if (aRes.doc.type !== bRes.doc.type) {
+      // Then, directories
       return aRes.doc.type === 'directory' ? -1 : 1
     }
+    // Then name
     return this.compareStrings(aRes.doc.name, bRes.doc.name)
   }
 }

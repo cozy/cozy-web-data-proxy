@@ -1,7 +1,7 @@
-import CozyClient, { generateWebLink, models } from 'cozy-client'
-import { IOCozyContact } from 'cozy-client/types/types'
+import CozyClient, { Q, generateWebLink, models } from 'cozy-client'
+import { IOCozyContact, IOCozyFile } from 'cozy-client/types/types'
 
-import { APPS_DOCTYPE, TYPE_DIRECTORY } from '@/search/consts'
+import { APPS_DOCTYPE, FILES_DOCTYPE, TYPE_DIRECTORY } from '@/search/consts'
 import {
   CozyDoc,
   RawSearchResult,
@@ -11,18 +11,50 @@ import {
   SearchResult
 } from '@/search/types'
 
-export const normalizeSearchResult = (
+interface FileQueryResult {
+  data: IOCozyFile
+}
+
+export const normalizeSearchResult = async (
   client: CozyClient,
   searchResults: RawSearchResult,
   query: string
-): SearchResult => {
-  const url = buildOpenURL(client, searchResults.doc)
-  const type = getSearchResultSlug(searchResults.doc)
-  const title = getSearchResultTitle(searchResults.doc)
-  const name = getSearchResultSubTitle(client, searchResults, query)
-  const normalizedDoc = { doc: searchResults.doc, type, title, name, url }
+): Promise<SearchResult> => {
+  const doc = await normalizeDoc(client, searchResults.doc)
+  const url = buildOpenURL(client, doc)
+  const type = getSearchResultSlug(doc)
+  const title = getSearchResultTitle(doc)
+  const name = getSearchResultSubTitle(client, {
+    fields: searchResults.fields,
+    doc,
+    query
+  })
+  const normalizedRes = { doc, type, title, name, url }
 
-  return normalizedDoc
+  return normalizedRes
+}
+
+const normalizeDoc = async (
+  client: CozyClient,
+  doc: CozyDoc
+): Promise<CozyDoc> => {
+  if (!isIOCozyFile(doc)) {
+    return doc
+  }
+  if (!doc.path) {
+    const query = Q(FILES_DOCTYPE).getById(doc.dir_id).limitBy(1)
+    // XXX - Take advantage of cozy-client store to avoid querying database
+    const { data: parentDir } = (await client.query(query, {
+      executeFromStore: true,
+      singleDocData: true
+    })) as FileQueryResult
+    if (!parentDir) {
+      return doc
+    }
+    const path = `${parentDir.path}/${doc.name}`
+    return { ...doc, path }
+  }
+  return doc
 }
 
 const getSearchResultTitle = (doc: CozyDoc): string | null => {
@@ -43,18 +75,18 @@ const getSearchResultTitle = (doc: CozyDoc): string | null => {
 
 const getSearchResultSubTitle = (
   client: CozyClient,
-  searchResult: RawSearchResult,
-  query: string
+  params: { fields: string[]; doc: CozyDoc; query: string }
 ): string | null => {
-  if (isIOCozyFile(searchResult.doc)) {
-    return searchResult.doc.path ?? null
+  const { fields, doc, query } = params
+  if (isIOCozyFile(doc)) {
+    return doc.path ?? null
   }
 
-  if (isIOCozyContact(searchResult.doc)) {
+  if (isIOCozyContact(doc)) {
     let matchingValue
 
     // Several document fields might match a search query. Let's take the first one different from name, assuming a relevance order
-    const matchingField = searchResult.fields.find(
+    const matchingField = fields.find(
       field => field !== 'displayName' && field !== 'fullname'
     )
 
@@ -70,7 +102,7 @@ const getSearchResultSubTitle = (
       const arrayAttributeName = tokens[0] as keyof IOCozyContact
       const valueAttribute = tokens[1]
 
-      const array = searchResult.doc[arrayAttributeName]
+      const array = doc[arrayAttributeName]
       const matchingArrayItem =
         Array.isArray(array) &&
         array.find(item => {
@@ -89,21 +121,21 @@ const getSearchResultSubTitle = (
       matchingValue =
         matchingArrayItem[valueAttribute as keyof typeof matchingArrayItem]
     } else {
-      matchingValue = searchResult.doc[matchingField as keyof IOCozyContact]
+      matchingValue = doc[matchingField as keyof IOCozyContact]
     }
 
     return matchingValue?.toString() ?? null
   }
 
-  if (searchResult.doc._type === APPS_DOCTYPE) {
+  if (doc._type === APPS_DOCTYPE) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const locale: string = client.getInstanceOptions().locale || 'en'
-      if (searchResult.doc.locales[locale]) {
-        return searchResult.doc.locales[locale].short_description
+      if (doc.locales[locale]) {
+        return doc.locales[locale].short_description
       }
     } catch {
-      return searchResult.doc.name
+      return doc.name
     }
   }
   return null

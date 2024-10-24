@@ -1,6 +1,6 @@
 import { IOCozyFile } from 'cozy-client/types/types'
 
-import { normalizeFile } from './normalizeFile'
+import { normalizeFileWithFolders } from './normalizeFile'
 
 test('should get path for directories', () => {
   const folders = [] as IOCozyFile[]
@@ -11,7 +11,7 @@ test('should get path for directories', () => {
     path: 'SOME/PATH/'
   } as IOCozyFile
 
-  const result = normalizeFile(folders, file)
+  const result = normalizeFileWithFolders(folders, file)
 
   expect(result).toStrictEqual({
     type: 'directory',
@@ -35,7 +35,7 @@ test(`should get parent folder's path for files`, () => {
     dir_id: 'SOME_DIR_ID'
   } as IOCozyFile
 
-  const result = normalizeFile(folders, file)
+  const result = normalizeFileWithFolders(folders, file)
 
   expect(result).toStrictEqual({
     type: 'file',

@@ -1,7 +1,7 @@
-import CozyClient, { Q, generateWebLink, models } from 'cozy-client'
-import { IOCozyContact, IOCozyFile } from 'cozy-client/types/types'
+import CozyClient, { generateWebLink, models } from 'cozy-client'
+import { IOCozyContact } from 'cozy-client/types/types'
 
-import { APPS_DOCTYPE, FILES_DOCTYPE, TYPE_DIRECTORY } from '@/search/consts'
+import { APPS_DOCTYPE, TYPE_DIRECTORY } from '@/search/consts'
 import {
   CozyDoc,
   RawSearchResult,
@@ -11,9 +11,7 @@ import {
   SearchResult
 } from '@/search/types'
 
-interface FileQueryResult {
-  data: IOCozyFile
-}
+import { normalizeFileWithStore } from './normalizeFile'
 
 export const normalizeSearchResult = async (
   client: CozyClient,
@@ -38,21 +36,8 @@ const normalizeDoc = async (
   client: CozyClient,
   doc: CozyDoc
 ): Promise<CozyDoc> => {
-  if (!isIOCozyFile(doc)) {
-    return doc
-  }
-  if (!doc.path) {
-    const query = Q(FILES_DOCTYPE).getById(doc.dir_id).limitBy(1)
-    // XXX - Take advantage of cozy-client store to avoid querying database
-    const { data: parentDir } = (await client.query(query, {
-      executeFromStore: true,
-      singleDocData: true
-    })) as FileQueryResult
-    if (!parentDir) {
-      return doc
-    }
-    const path = `${parentDir.path}/${doc.name}`
-    return { ...doc, path }
+  if (isIOCozyFile(doc)) {
+    return normalizeFileWithStore(client, doc)
   }
   return doc
 }

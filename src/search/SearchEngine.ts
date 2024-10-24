@@ -12,8 +12,6 @@ import {
   DOCTYPE_ORDER,
   LIMIT_DOCTYPE_SEARCH,
   REPLICATION_DEBOUNCE,
-  ROOT_DIR_ID,
-  SHARED_DRIVES_DIR_ID,
   SearchedDoctype
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
@@ -36,6 +34,8 @@ import {
   SearchResult,
   isSearchedDoctype
 } from '@/search/types'
+
+import { shouldKeepFile } from './helpers/normalizeFile'
 
 const log = Minilog('🗂️ [Indexing]')
 
@@ -158,13 +158,7 @@ class SearchEngine {
 
   shouldIndexDoc(doc: CozyDoc): boolean {
     if (isIOCozyFile(doc)) {
-      const notInTrash = !doc.trashed && !/^\/\.cozy_trash/.test(doc.path ?? '')
-      const notRootDir = doc._id !== ROOT_DIR_ID
-      // Shared drives folder to be hidden in search.
-      // The files inside it though must appear. Thus only the file with the folder ID is filtered out.
-      const notSharedDrivesDir = doc._id !== SHARED_DRIVES_DIR_ID
-
-      return notInTrash && notRootDir && notSharedDrivesDir
+      return shouldKeepFile(doc)
     }
     return true
   }

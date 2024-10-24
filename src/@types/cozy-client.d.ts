@@ -170,14 +170,14 @@ declare module 'cozy-client' {
   }
 
   export default class CozyClient {
-    plugins: any
+    plugins: unknown
     constructor(rawOptions?: ClientOptions)
     getStackClient(): StackClient
     getInstanceOptions(): InstanceOptions
     instanceOptions: InstanceOptions
     collection(doctype: string): Collection
     isLogged: boolean
-    on: (event: string, callback: () => void) => void
+    on: (event: string, callback: (doctype: string) => void) => void
     removeListener: (event: string, callback: () => void) => void
     logout: () => Promise<void>
     query: (

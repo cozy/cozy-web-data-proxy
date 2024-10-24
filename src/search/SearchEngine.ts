@@ -13,7 +13,8 @@ import {
   LIMIT_DOCTYPE_SEARCH,
   REPLICATION_DEBOUNCE,
   ROOT_DIR_ID,
-  SHARED_DRIVES_DIR_ID
+  SHARED_DRIVES_DIR_ID,
+  SearchedDoctype
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
 import { getSearchEncoder } from '@/search/helpers/getSearchEncoder'
@@ -30,10 +31,10 @@ import {
   isIOCozyApp,
   isIOCozyContact,
   isIOCozyFile,
-  SearchedDoctype,
   SearchIndex,
   SearchIndexes,
-  SearchResult
+  SearchResult,
+  isSearchedDoctype
 } from '@/search/types'
 
 const log = Minilog('🗂️ [Indexing]')
@@ -50,7 +51,7 @@ class SearchEngine {
 
   constructor(client: CozyClient) {
     this.client = client
-    this.searchIndexes = {}
+    this.searchIndexes = {} as SearchIndexes
 
     this.indexOnChanges()
     this.debouncedReplication = startReplicationWithDebounce(
@@ -64,7 +65,9 @@ class SearchEngine {
       return
     }
     this.client.on('pouchlink:doctypesync:end', async (doctype: string) => {
-      await this.indexDocsForSearch(doctype)
+      if (isSearchedDoctype(doctype)) {
+        await this.indexDocsForSearch(doctype as keyof typeof SEARCH_SCHEMA)
+      }
     })
     this.client.on('login', () => {
       // Ensure login is done before plugin register
@@ -79,15 +82,17 @@ class SearchEngine {
   }
 
   subscribeDoctype(client: CozyClient, doctype: string): void {
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
     const realtime = this.client.plugins.realtime
     realtime.subscribe('created', doctype, this.handleUpdatedOrCreatedDoc)
     realtime.subscribe('updated', doctype, this.handleUpdatedOrCreatedDoc)
     realtime.subscribe('deleted', doctype, this.handleDeletedDoc)
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
   }
 
   handleUpdatedOrCreatedDoc(doc: CozyDoc): void {
-    const doctype: string | undefined = doc._type
-    if (!doctype) {
+    const doctype = doc._type
+    if (!isSearchedDoctype(doctype)) {
       return
     }
     const searchIndex = this.searchIndexes?.[doctype]
@@ -102,8 +107,8 @@ class SearchEngine {
   }
 
   handleDeletedDoc(doc: CozyDoc): void {
-    const doctype: string | undefined = doc._type
-    if (!doctype) {
+    const doctype = doc._type
+    if (!isSearchedDoctype(doctype)) {
       return
     }
     const searchIndex = this.searchIndexes?.[doctype]
@@ -112,7 +117,7 @@ class SearchEngine {
       return
     }
     log.debug('[REALTIME] remove doc from index after update : ', doc)
-    this.searchIndexes[doctype].index.remove(doc._id)
+    this.searchIndexes[doctype].index.remove(doc._id!)
 
     this.debouncedReplication()
   }
@@ -126,6 +131,7 @@ class SearchEngine {
     const flexsearchIndex = new FlexSearch.Document<CozyDoc, true>({
       tokenize: 'forward',
       encode: getSearchEncoder(),
+      // @ts-ignore
       minlength: 2,
       document: {
         id: '_id',
@@ -152,7 +158,7 @@ class SearchEngine {
 
   shouldIndexDoc(doc: CozyDoc): boolean {
     if (isIOCozyFile(doc)) {
-      const notInTrash = !doc.trashed && !/^\/\.cozy_trash/.test(doc.path)
+      const notInTrash = !doc.trashed && !/^\/\.cozy_trash/.test(doc.path ?? '')
       const notRootDir = doc._id !== ROOT_DIR_ID
       // Shared drives folder to be hidden in search.
       // The files inside it though must appear. Thus only the file with the folder ID is filtered out.
@@ -163,7 +169,9 @@ class SearchEngine {
     return true
   }
 
-  async indexDocsForSearch(doctype: string): Promise<SearchIndex | null> {
+  async indexDocsForSearch(
+    doctype: keyof typeof SEARCH_SCHEMA
+  ): Promise<SearchIndex | null> {
     const searchIndex = this.searchIndexes[doctype]
     const pouchLink = getPouchLink(this.client)
 
@@ -173,7 +181,9 @@ class SearchEngine {
 
     if (!searchIndex) {
       // First creation of search index
-      const docs = await this.client.queryAll(Q(doctype).limitBy(null))
+      const docs = await this.client.queryAll<CozyDoc[]>(
+        Q(doctype).limitBy(null)
+      )
       const index = this.buildSearchIndex(doctype, docs)
       const info = await pouchLink.getDbInfo(doctype)
 
@@ -199,7 +209,7 @@ class SearchEngine {
       if (change.deleted) {
         searchIndex.index.remove(change.id)
       } else {
-        const normalizedDoc = { ...change.doc, _type: doctype }
+        const normalizedDoc = { ...change.doc, _type: doctype } as CozyDoc
         this.addDocToIndex(searchIndex.index, normalizedDoc)
       }
     }
@@ -222,10 +232,19 @@ class SearchEngine {
     const appsIndex = this.buildSearchIndex('io.cozy.apps', apps)
 
     log.debug('Finished initializing indexes')
+    const currentDate = new Date().toISOString()
     this.searchIndexes = {
-      [FILES_DOCTYPE]: { index: filesIndex, lastSeq: 0 },
-      [CONTACTS_DOCTYPE]: { index: contactsIndex, lastSeq: 0 },
-      [APPS_DOCTYPE]: { index: appsIndex, lastSeq: 0 }
+      [FILES_DOCTYPE]: {
+        index: filesIndex,
+        lastSeq: 0,
+        lastUpdated: currentDate
+      },
+      [CONTACTS_DOCTYPE]: {
+        index: contactsIndex,
+        lastSeq: 0,
+        lastUpdated: currentDate
+      },
+      [APPS_DOCTYPE]: { index: appsIndex, lastSeq: 0, lastUpdated: currentDate }
     }
     return this.searchIndexes
   }
@@ -250,7 +269,8 @@ class SearchEngine {
 
   searchOnIndexes(query: string): FlexSearchResultWithDoctype[] {
     let searchResults: FlexSearchResultWithDoctype[] = []
-    for (const doctype in this.searchIndexes) {
+    for (const key in this.searchIndexes) {
+      const doctype = key as SearchedDoctype // XXX - Should not be necessary
       const index = this.searchIndexes[doctype]
       if (!index) {
         log.warn('[SEARCH] No search index available for ', doctype)
@@ -258,13 +278,16 @@ class SearchEngine {
       }
       // TODO: do not use flexsearch store and rely on pouch storage?
       // It's better for memory, but might slow down search queries
-      const indexResults = index.index.search(query, {
+      // XXX - The limit is specified twice because of a flexsearch inconstency
+      // that does not enforce the limit if only given in second argument, and
+      // does not return the correct type is only given in third options
+      const indexResults = index.index.search(query, LIMIT_DOCTYPE_SEARCH, {
         limit: LIMIT_DOCTYPE_SEARCH,
         enrich: true
       })
       const newResults = indexResults.map(res => ({
         ...res,
-        doctype
+        doctype: doctype
       }))
       searchResults = searchResults.concat(newResults)
     }
@@ -278,11 +301,14 @@ class SearchEngine {
       item.result.map(r => ({ ...r, field: item.field, doctype: item.doctype }))
     )
 
-    const resultMap = new Map<FlexSearch.Id[], any>()
+    type MapItem = Omit<(typeof combinedResults)[number], 'field'> & {
+      fields: string[]
+    }
+    const resultMap = new Map<FlexSearch.Id[], MapItem>()
 
     combinedResults.forEach(({ id, field, ...rest }) => {
       if (resultMap.has(id)) {
-        resultMap.get(id).fields.push(field)
+        resultMap.get(id)?.fields.push(field)
       } else {
         resultMap.set(id, { id, fields: [field], ...rest })
       }

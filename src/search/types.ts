@@ -2,7 +2,13 @@ import FlexSearch from 'flexsearch'
 
 import { IOCozyFile, IOCozyContact, IOCozyApp } from 'cozy-client/types/types'
 
-import { APPS_DOCTYPE, CONTACTS_DOCTYPE, FILES_DOCTYPE } from '@/search/consts'
+import {
+  APPS_DOCTYPE,
+  CONTACTS_DOCTYPE,
+  FILES_DOCTYPE,
+  SEARCH_SCHEMA,
+  SearchedDoctype
+} from '@/search/consts'
 
 export type CozyDoc = IOCozyFile | IOCozyContact | IOCozyApp
 
@@ -18,17 +24,15 @@ export const isIOCozyApp = (doc: CozyDoc): doc is IOCozyApp => {
   return doc._type === APPS_DOCTYPE
 }
 
-const searchedDoctypes = [
-  APPS_DOCTYPE,
-  CONTACTS_DOCTYPE,
-  FILES_DOCTYPE
-] as const
-export type SearchedDoctype = (typeof searchedDoctypes)[number]
+const searchedDoctypes = Object.keys(SEARCH_SCHEMA)
 
 export const isSearchedDoctype = (
-  doctype: string
+  doctype: string | undefined
 ): doctype is SearchedDoctype => {
-  return true
+  if (!doctype) {
+    return false
+  }
+  return searchedDoctypes.includes(doctype)
 }
 
 export interface RawSearchResult
@@ -52,5 +56,5 @@ export interface SearchIndex {
 }
 
 export type SearchIndexes = {
-  [key: string]: SearchIndex
+  [key in SearchedDoctype]: SearchIndex
 }

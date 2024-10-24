@@ -9,9 +9,13 @@ jest.mock('@/search/helpers/client', () => ({
   getPouchLink: jest.fn()
 }))
 
+interface PouchLink {
+  startReplication: Function
+}
+
 describe('startReplicationWithDebounce', () => {
   let client: CozyClient
-  let pouchLink: any
+  let pouchLink: PouchLink
 
   beforeEach(() => {
     client = new CozyClient()

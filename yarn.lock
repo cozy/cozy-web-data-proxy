@@ -1040,6 +1040,13 @@
   dependencies:
     "@babel/types" "^7.20.7"
 
+"@types/debug@*":
+  version "4.1.12"
+  resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.12.tgz#a155f21690871953410df4b6b6f53187f0500917"
+  integrity sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==
+  dependencies:
+    "@types/ms" "*"
+
 "@types/ejs@^3.1.5":
   version "3.1.5"
   resolved "https://registry.yarnpkg.com/@types/ejs/-/ejs-3.1.5.tgz#49d738257cc73bafe45c13cb8ff240683b4d5117"
@@ -1119,12 +1126,80 @@
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.10.tgz#64f3edf656af2fe59e7278b73d3e62404144a6e6"
   integrity sha512-YpS0zzoduEhuOWjAotS6A5AVCva7X4lVlYLF0FYHAY9sdraBfnatttHItlWeZdGhuEkf+OzMNg2ZYAx8t+52uQ==
 
+"@types/ms@*":
+  version "0.7.34"
+  resolved "https://registry.yarnpkg.com/@types/ms/-/ms-0.7.34.tgz#10964ba0dee6ac4cd462e2795b6bebd407303433"
+  integrity sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==
+
 "@types/node@*":
   version "22.7.5"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-22.7.5.tgz#cfde981727a7ab3611a481510b473ae54442b92b"
   integrity sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==
   dependencies:
     undici-types "~6.19.2"
+
+"@types/pouchdb-adapter-http@*":
+  version "6.1.6"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-adapter-http/-/pouchdb-adapter-http-6.1.6.tgz#dbb80b2c1366f114bbd7002e62999b526750ef3d"
+  integrity sha512-DJur1mt07GJXwGb5K+MOILoCOSgoQpsi7hybcTzRLeR3IO8Y8eq7TnhTkftAJdx9VHJGOiOXFjO+8BYM69j5yA==
+  dependencies:
+    "@types/pouchdb-core" "*"
+
+"@types/pouchdb-adapter-idb@*":
+  version "6.1.7"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-adapter-idb/-/pouchdb-adapter-idb-6.1.7.tgz#4fba402c72aa1697b7922fba6eebec131cbb8670"
+  integrity sha512-KwjkJ4fTNz5wPXYu20bUoWud7ty0t7tgdo4oc0AJvG+fcURAH7mI7uFmpE4dZIT+hUq5G61xu96AVq9b2q4T3g==
+  dependencies:
+    "@types/pouchdb-core" "*"
+
+"@types/pouchdb-adapter-websql@*":
+  version "6.1.7"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-adapter-websql/-/pouchdb-adapter-websql-6.1.7.tgz#774754b14385dea2dd9c41d61772e16755768c5b"
+  integrity sha512-9oNkP5ZCGMkQALO9KmtbHXlkBq8i2hoCEE6/gWzRicAvL1y+WIKjEQiIIEamMhj5u5tARvW3n2/r+JXwLCyYgw==
+  dependencies:
+    "@types/pouchdb-core" "*"
+
+"@types/pouchdb-browser@^6.1.5":
+  version "6.1.5"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-browser/-/pouchdb-browser-6.1.5.tgz#fb1d1fe9670dda05081dd690f4778b7c2e2d8eaa"
+  integrity sha512-f+HjxEjYFpgoYWXnMI9AQZZ+SIG8dBiBPrpfWWGsCl+48rumsP5BuBWHq/aXoB8SRKYO0XdP4TNvMBWM3UATCw==
+  dependencies:
+    "@types/pouchdb-adapter-http" "*"
+    "@types/pouchdb-adapter-idb" "*"
+    "@types/pouchdb-adapter-websql" "*"
+    "@types/pouchdb-core" "*"
+    "@types/pouchdb-mapreduce" "*"
+    "@types/pouchdb-replication" "*"
+
+"@types/pouchdb-core@*":
+  version "7.0.15"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-core/-/pouchdb-core-7.0.15.tgz#02bb1b480c37b6d84b2e3c8babee716f1a101814"
+  integrity sha512-gq1Qbqn9nCaAKRRv6fRHZ4/ER+QYEwSXBZlDQcxwdbPrtZO8EhIn2Bct0AlguaSEdFcABfbaxxyQwFINkNQ9dQ==
+  dependencies:
+    "@types/debug" "*"
+    "@types/pouchdb-find" "*"
+
+"@types/pouchdb-find@*":
+  version "7.3.3"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-find/-/pouchdb-find-7.3.3.tgz#599e388e2a1c4e57ee8aba0d5deca24d37b6978e"
+  integrity sha512-U7zXk67s9Ar+9Pwj5kSbuMnn8zif0AOOIPy4KRFeJ/S/Tk+mNS90soj+3OV21H8xyB7WTxjvS1JLablZC6C6ow==
+  dependencies:
+    "@types/pouchdb-core" "*"
+
+"@types/pouchdb-mapreduce@*":
+  version "6.1.10"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-mapreduce/-/pouchdb-mapreduce-6.1.10.tgz#2668c32a79920dbaed4ac335fa0fc4b986a0cb38"
+  integrity sha512-AgYVqCnaA5D7cWkWyzZVuk0137N4yZsmIQTD/i3DmuMxYYoFrtWUoQu0tbA52SpTRGdL8ubQ7JFQXzA13fA6IQ==
+  dependencies:
+    "@types/pouchdb-core" "*"
+
+"@types/pouchdb-replication@*":
+  version "6.4.7"
+  resolved "https://registry.yarnpkg.com/@types/pouchdb-replication/-/pouchdb-replication-6.4.7.tgz#09f668fa750e0c4f5fcfc01667be4b29d662f449"
+  integrity sha512-slB4zOwri3SAVHioFx/FWC/KqOzzb7nDFtV+qzaKzxkf+U5zTwCbK3uRHaj0d/XQk0DwVeajf1ni3Wiyq3j2OA==
+  dependencies:
+    "@types/pouchdb-core" "*"
+    "@types/pouchdb-find" "*"
 
 "@types/prop-types@*":
   version "15.7.13"
@@ -2173,31 +2248,6 @@ cozy-app-publish@^0.34.0:
     tar "^6.1.11"
     verror "^1.10.1"
 
-cozy-client@^49.0.0:
-  version "49.0.0"
-  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-49.0.0.tgz#c38f3bdefd58cbf827a368fe126cc9e27deb996d"
-  integrity sha512-AY22bxwQV+46+4rSVc+zYci8pPHspolBJ1IcqvxJ+DknZrehJ5AKJ55F9DzN3aPXVNCQzmw+wpNFgVP4gShFAw==
-  dependencies:
-    "@cozy/minilog" "1.0.0"
-    "@types/jest" "^26.0.20"
-    "@types/lodash" "^4.14.170"
-    btoa "^1.2.1"
-    cozy-stack-client "^49.0.0"
-    date-fns "2.29.3"
-    json-stable-stringify "^1.0.1"
-    lodash "^4.17.13"
-    microee "^0.0.6"
-    node-fetch "^2.6.1"
-    node-polyglot "2.4.2"
-    open "7.4.2"
-    prop-types "^15.6.2"
-    react-redux "^7.2.0"
-    redux "3 || 4"
-    redux-thunk "^2.3.0"
-    server-destroy "^1.0.1"
-    sift "^6.0.0"
-    url-search-params-polyfill "^8.0.0"
-
 cozy-client@^49.8.0:
   version "49.8.0"
   resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-49.8.0.tgz#d4f6b3a2fb26dc6bfa561046b075eb6e221af73e"
@@ -2268,15 +2318,6 @@ cozy-realtime@^5.0.2:
   dependencies:
     "@cozy/minilog" "^1.0.0"
     cozy-device-helper "^3.1.0"
-
-cozy-stack-client@^49.0.0:
-  version "49.4.0"
-  resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-49.4.0.tgz#775d2d48e74182049977e2e423f7a42d39a4ac61"
-  integrity sha512-iy2vTpj25vHqErfPeclN3flI99il+WBm+Kt0FWI5YzM4H76+fE07/6Up4zOqtyOuaF7S22OHSim4Zl2hFB/SpA==
-  dependencies:
-    detect-node "^2.0.4"
-    mime "^2.4.0"
-    qs "^6.7.0"
 
 cozy-stack-client@^49.8.0:
   version "49.8.0"

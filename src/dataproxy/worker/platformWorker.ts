@@ -31,7 +31,7 @@ const openDB = (): Promise<IDBDatabase> => {
 }
 
 const storage = {
-  getItem: async (key: string): Promise<any> => {
+  getItem: async (key: string): Promise<unknown> => {
     const db = await openDB()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('store', 'readonly')
@@ -39,6 +39,7 @@ const storage = {
       const request = store.get(key)
 
       request.onsuccess = (): void => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         resolve(request.result ? request.result.value : null)
       }
 
@@ -48,7 +49,7 @@ const storage = {
     })
   },
 
-  setItem: async (key: string, value: any): Promise<void> => {
+  setItem: async (key: string, value: unknown): Promise<void> => {
     const db = await openDB()
     return new Promise((resolve, reject) => {
       const transaction = db.transaction('store', 'readwrite')
@@ -105,6 +106,7 @@ const isOnline = async (): Promise<boolean> => {
 export const platformWorker = {
   storage,
   events,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   pouchAdapter: PouchDB,
   isOnline
 }

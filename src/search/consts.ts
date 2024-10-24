@@ -1,5 +1,12 @@
+const SEARCHABLE_DOCTYPES = [
+  'io.cozy.files',
+  'io.cozy.contacts',
+  'io.cozy.apps'
+] as const
+export type SearchedDoctype = (typeof SEARCHABLE_DOCTYPES)[number]
+
 // Attribute order matters to apply priority on matching results
-export const SEARCH_SCHEMA = {
+export const SEARCH_SCHEMA: Record<SearchedDoctype, string[]> = {
   'io.cozy.files': ['name', 'path'],
   'io.cozy.contacts': [
     'displayName',

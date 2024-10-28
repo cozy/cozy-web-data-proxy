@@ -5,7 +5,7 @@ export type { SearchIndexes } from '@/search/types'
 
 export interface DataProxyWorker {
   search: (query: string) => unknown
-  setClient: (clientData: ClientData) => Promise<void>
+  setup: (clientData: ClientData) => Promise<void>
 }
 
 export interface DataProxyWorkerPartialState {

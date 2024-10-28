@@ -23,8 +23,7 @@ let searchEngine: SearchEngine
 const broadcastChannel = new BroadcastChannel('DATA_PROXY_BROADCAST_CHANANEL')
 
 const dataProxy: DataProxyWorker = {
-  // FIXME: change setClient name
-  setClient: async (clientData: ClientData) => {
+  setup: async (clientData: ClientData) => {
     log.debug('Received data for setting client')
     if (client) return
     updateState()

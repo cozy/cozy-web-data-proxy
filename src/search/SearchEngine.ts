@@ -264,11 +264,12 @@ class SearchEngine {
     }
 
     const allResults = this.searchOnIndexes(query)
-    const results = this.deduplicateAndFlatten(allResults)
-    const sortedResults = this.sortSearchResults(results)
+    const dedupResults = this.deduplicateAndFlatten(allResults)
+    const sortedResults = this.sortSearchResults(dedupResults)
+    const results = this.limitSearchResults(sortedResults)
 
     const normResults: SearchResult[] = []
-    for (const res of sortedResults) {
+    for (const res of results) {
       const normalizedRes = await normalizeSearchResult(this.client, res, query)
       normResults.push(normalizedRes)
     }
@@ -286,11 +287,18 @@ class SearchEngine {
       }
       // TODO: do not use flexsearch store and rely on pouch storage?
       // It's better for memory, but might slow down search queries
+      //
       // XXX - The limit is specified twice because of a flexsearch inconstency
       // that does not enforce the limit if only given in second argument, and
       // does not return the correct type is only given in third options
-      const indexResults = index.index.search(query, LIMIT_DOCTYPE_SEARCH, {
-        limit: LIMIT_DOCTYPE_SEARCH,
+      //
+      // XXX - The given limit here is arbitrary because flexsearch enforce it on matching
+      // field, which can cause issue related to the sort: if we search on name+path for files,
+      // and limit on 100, the 101th result on name will be skipped, but might appear on path,
+      // which will make it appear in the search results, but in incorrect order.
+      const FLEXSEARCH_LIMIT = 10000
+      const indexResults = index.index.search(query, FLEXSEARCH_LIMIT, {
+        limit: FLEXSEARCH_LIMIT,
         enrich: true
       })
       const newResults = indexResults.map(res => ({
@@ -372,6 +380,10 @@ class SearchEngine {
     }
     // Then name
     return this.compareStrings(aRes.doc.name, bRes.doc.name)
+  }
+
+  limitSearchResults(searchResults: RawSearchResult[]): RawSearchResult[] {
+    return searchResults.slice(0, LIMIT_DOCTYPE_SEARCH)
   }
 }
 

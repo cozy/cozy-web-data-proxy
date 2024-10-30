@@ -35,7 +35,7 @@ import {
   isSearchedDoctype
 } from '@/search/types'
 
-import { shouldKeepFile } from './helpers/normalizeFile'
+import { addFilePaths, shouldKeepFile } from './helpers/normalizeFile'
 
 const log = Minilog('🗂️ [Indexing]')
 
@@ -254,9 +254,7 @@ class SearchEngine {
     return this.searchIndexes
   }
 
-  async search(query: string): Promise<SearchResult[]> {
-    log.debug('[SEARCH] indexes : ', this.searchIndexes)
-
+  search(query: string): SearchResult[] {
     if (!this.searchIndexes) {
       // TODO: What if the indexing is running but not finished yet?
       log.warn('[SEARCH] No search index available')
@@ -269,8 +267,9 @@ class SearchEngine {
     const results = this.limitSearchResults(sortedResults)
 
     const normResults: SearchResult[] = []
-    for (const res of results) {
-      const normalizedRes = await normalizeSearchResult(this.client, res, query)
+    const completedResults = addFilePaths(this.client, results)
+    for (const res of completedResults) {
+      const normalizedRes = normalizeSearchResult(this.client, res, query)
       normResults.push(normalizedRes)
     }
     return normResults.filter(res => res.title)
@@ -301,12 +300,14 @@ class SearchEngine {
         limit: FLEXSEARCH_LIMIT,
         enrich: true
       })
+
       const newResults = indexResults.map(res => ({
         ...res,
         doctype: doctype
       }))
       searchResults = searchResults.concat(newResults)
     }
+
     return searchResults
   }
 

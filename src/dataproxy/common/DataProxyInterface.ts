@@ -4,7 +4,7 @@ import type { ClientCapabilities } from 'cozy-client/types/types'
 export type { SearchIndexes } from '@/search/types'
 
 export interface DataProxyWorker {
-  search: (query: string) => Promise<unknown>
+  search: (query: string) => unknown
   setClient: (clientData: ClientData) => Promise<void>
 }
 

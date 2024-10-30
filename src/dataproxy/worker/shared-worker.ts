@@ -66,7 +66,7 @@ const dataProxy: DataProxyWorker = {
     updateState()
   },
 
-  search: async (query: string) => {
+  search: (query: string) => {
     if (!client) {
       throw new Error(
         'Client is required to execute a search, please initialize CozyClient'
@@ -75,8 +75,11 @@ const dataProxy: DataProxyWorker = {
     if (!searchEngine) {
       throw new Error('SearchEngine is not initialized')
     }
-
-    return searchEngine.search(query)
+    const startSearchTime = performance.now()
+    const results = searchEngine.search(query)
+    const endSearchTime = performance.now()
+    log.debug(`Search took ${endSearchTime - startSearchTime} ms`)
+    return results
   }
 }
 

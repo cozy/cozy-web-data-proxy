@@ -11,14 +11,12 @@ import {
   SearchResult
 } from '@/search/types'
 
-import { normalizeFileWithStore } from './normalizeFile'
-
-export const normalizeSearchResult = async (
+export const normalizeSearchResult = (
   client: CozyClient,
   searchResults: RawSearchResult,
   query: string
-): Promise<SearchResult> => {
-  const doc = await normalizeDoc(client, searchResults.doc)
+): SearchResult => {
+  const doc = searchResults.doc
   const url = buildOpenURL(client, doc)
   const type = getSearchResultSlug(doc)
   const title = getSearchResultTitle(doc)
@@ -30,16 +28,6 @@ export const normalizeSearchResult = async (
   const normalizedRes = { doc, type, title, name, url }
 
   return normalizedRes
-}
-
-const normalizeDoc = async (
-  client: CozyClient,
-  doc: CozyDoc
-): Promise<CozyDoc> => {
-  if (isIOCozyFile(doc)) {
-    return normalizeFileWithStore(client, doc)
-  }
-  return doc
 }
 
 const getSearchResultTitle = (doc: CozyDoc): string | null => {

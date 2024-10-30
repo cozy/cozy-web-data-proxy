@@ -1,17 +1,14 @@
-import CozyClient, { Q } from 'cozy-client'
+import CozyClient from 'cozy-client'
 import { IOCozyFile } from 'cozy-client/types/types'
 
 import {
   FILES_DOCTYPE,
   TYPE_DIRECTORY,
+  TYPE_FILE,
   ROOT_DIR_ID,
   SHARED_DRIVES_DIR_ID
 } from '@/search/consts'
-import { CozyDoc } from '@/search/types'
-
-interface FileQueryResult {
-  data: IOCozyFile
-}
+import { CozyDoc, isIOCozyFile, RawSearchResult } from '@/search/types'
 
 /**
  * Normalize file for Front usage in <AutoSuggestion> component inside <BarSearchAutosuggest>
@@ -39,25 +36,39 @@ export const normalizeFileWithFolders = (
   return { ...file, _type: 'io.cozy.files', path }
 }
 
-export const normalizeFileWithStore = async (
+export const addFilePaths = (
   client: CozyClient,
-  file: IOCozyFile
-): Promise<IOCozyFile> => {
-  const isDir = file.type === TYPE_DIRECTORY
-  let path = ''
-  if (isDir) {
-    path = file.path ?? ''
-  } else {
-    const query = Q(FILES_DOCTYPE).getById(file.dir_id).limitBy(1)
-    // XXX - Take advantage of cozy-client store to avoid querying database
-    const { data: parentDir } = (await client.query(query, {
-      executeFromStore: true,
-      singleDocData: true
-    })) as FileQueryResult
-    const parentPath = parentDir?.path ?? ''
-    path = `${parentPath}/${file.name}`
+  results: RawSearchResult[]
+): RawSearchResult[] => {
+  const normResults = [...results]
+  const filesResults = normResults
+    .map(res => res.doc)
+    .filter(doc => isIOCozyFile(doc))
+  const files = filesResults.filter(file => file.type === TYPE_FILE)
+
+  if (files.length > 0) {
+    const dirIds = files.map(file => file.dir_id)
+    const parentDirs = getDirsFromStore(client, dirIds)
+    for (const file of files) {
+      const dir = parentDirs.find(dir => dir._id === file.dir_id)
+      if (dir) {
+        const idx = normResults.findIndex(res => res.doc._id === file._id)
+        normResults[idx].doc.path = dir.path
+      }
+    }
   }
-  return { ...file, _type: 'io.cozy.files', path }
+  return normResults
+}
+
+const getDirsFromStore = (
+  client: CozyClient,
+  dirIds: string[]
+): IOCozyFile[] => {
+  // XXX querying from store is surprisingly slow: 100+ ms for 50 docs, while
+  // this approach takes 2-3ms... It should be investigated in cozy-client
+  const allFiles = client.getCollectionFromState(FILES_DOCTYPE) as IOCozyFile[]
+  const dirs = allFiles.filter(file => file.type === TYPE_DIRECTORY)
+  return dirs.filter(dir => dirIds.includes(dir._id))
 }
 
 export const shouldKeepFile = (file: IOCozyFile): boolean => {

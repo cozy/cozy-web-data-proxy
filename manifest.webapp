@@ -27,14 +27,16 @@
   ],
   "permissions": {
     "apps": {
-      "description": "Required by the cozy-bar to display the icons of the apps",
+      "description": "Required to search in apps",
       "type": "io.cozy.apps",
       "verbs": ["GET"]
     },
     "files": {
+      "description": "Required to search in files",
       "type": "io.cozy.files"
     },
     "contacts": {
+      "description": "Required to search in contacts",
       "type": "io.cozy.contacts"
     }
   }

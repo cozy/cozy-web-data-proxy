@@ -16,6 +16,11 @@
       "folder": "/",
       "index": "index.html",
       "public": false
+    },
+    "/reset": {
+      "folder": "/reset",
+      "index": "index.html",
+      "public": true
     }
   },
   "intents": [

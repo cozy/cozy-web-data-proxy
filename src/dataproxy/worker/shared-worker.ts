@@ -24,7 +24,7 @@ const broadcastChannel = new BroadcastChannel('DATA_PROXY_BROADCAST_CHANANEL')
 
 const dataProxy: DataProxyWorker = {
   setup: async (clientData: ClientData) => {
-    log.debug('Received data for setting client')
+    log.debug('Received data for setting up client')
     if (client) return
     updateState()
 
@@ -62,6 +62,7 @@ const dataProxy: DataProxyWorker = {
 
     searchEngine = new SearchEngine(client)
 
+    log.debug('Setup done')
     updateState()
   },
 

@@ -10,6 +10,7 @@ import {
   DataProxyWorkerPartialState
 } from '@/dataproxy/common/DataProxyInterface'
 import { TabCountSync } from '@/dataproxy/common/TabCountSync'
+import { removeStaleLocalData } from '@/dataproxy/worker/utils'
 
 const log = Minilog('👷‍♂️ [SharedWorkerProvider]')
 
@@ -44,7 +45,11 @@ export const SharedWorkerProvider = React.memo(
       if (!client) return
 
       const doAsync = async (): Promise<void> => {
+        // Cleanup any remaining local data
+        await removeStaleLocalData()
+
         log.debug('Init SharedWorker')
+
         const workerInst = new SharedWorker(
           new URL('./shared-worker.ts', import.meta.url),
           {

@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <script>
+      // Remove all indexedDB databases
+      window.indexedDB.databases().then(function(databases) {
+        databases.forEach(function(db) {
+          window.indexedDB.deleteDatabase(db.name)
+          console.log('Deleted indexedDB database : ', db.name);
+        })  
+      }) 
+      // Remove localstorage
+      window.localStorage.clear()
+      console.log('Deleted localstorage');
+    </script>
+  </head>
+</html>

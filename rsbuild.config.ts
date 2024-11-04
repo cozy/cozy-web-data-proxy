@@ -9,8 +9,8 @@ export default defineConfig({
   output: {
     cleanDistPath: true,
     distPath: {
-      root: 'build'
-    }
+      root: 'build',
+    },
   },
   html: {
     template: './src/targets/browser/index.ejs',
@@ -49,7 +49,11 @@ export default defineConfig({
             },
             {
               from: 'icon.svg'
-            }
+            },
+            {
+              from: 'src/targets/public/index.html',
+              to: 'reset/index.html'
+            },
           ],
         })
       ]

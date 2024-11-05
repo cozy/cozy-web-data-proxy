@@ -89,6 +89,18 @@ const dataProxy: DataProxyWorker = {
     const endSearchTime = performance.now()
     log.debug(`Search took ${endSearchTime - startSearchTime} ms`)
     return results
+  },
+
+  forceSyncPouch: () => {
+    if (!client) {
+      throw new Error(
+        'Client is required to execute a forceSyncPouch, please initialize CozyClient'
+      )
+    }
+    const pouchLink = getPouchLink(client)
+    if (pouchLink) {
+      pouchLink.startReplication()
+    }
   }
 }
 

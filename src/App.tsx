@@ -13,7 +13,7 @@ Minilog.enable()
 
 const App = (): JSX.Element => {
   const client = useClient()
-  const { workerState } = useSharedWorker()
+  const { worker, workerState } = useSharedWorker()
 
   return (
     <div className="content">
@@ -28,6 +28,13 @@ const App = (): JSX.Element => {
           </p>
         )
       })}
+      <button
+        onClick={() => {
+          worker.forceSyncPouch()
+        }}
+      >
+        Force sync
+      </button>
     </div>
   )
 }

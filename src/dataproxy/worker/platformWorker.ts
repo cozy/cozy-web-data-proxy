@@ -81,6 +81,22 @@ const storage = {
         reject(request.error)
       }
     })
+  },
+  destroy: async (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (db) {
+        db.close()
+        db = null
+      }
+      const request = indexedDB.deleteDatabase(dbName)
+
+      request.onsuccess = (): void => {
+        resolve()
+      }
+      request.onerror = (): void => {
+        reject(request.error)
+      }
+    })
   }
 }
 

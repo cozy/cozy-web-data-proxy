@@ -1,6 +1,6 @@
 import Minilog from 'cozy-minilog'
 
-import { LOCALSTORAGE_KEY_DELETING_DATA } from '@/search/consts'
+import { LOCALSTORAGE_KEY_DELETING_DATA } from '@/consts'
 const log = Minilog('👷‍♂️ [Worker utils]')
 
 const deleteDatabases = async (): Promise<void> => {

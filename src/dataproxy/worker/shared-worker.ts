@@ -1,9 +1,11 @@
 import * as Comlink from 'comlink'
 
 import CozyClient from 'cozy-client'
+import { SearchEngine } from 'cozy-dataproxy-lib'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
 
+import { FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '@/consts'
 import {
   ClientData,
   DataProxyWorker,
@@ -11,8 +13,7 @@ import {
 } from '@/dataproxy/common/DataProxyInterface'
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
 import schema from '@/doctypes'
-import SearchEngine from '@/search/SearchEngine'
-import { FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '@/search/consts'
+import { getPouchLink } from '@/helpers/client'
 
 const log = Minilog('👷‍♂️ [shared-worker]')
 Minilog.enable()

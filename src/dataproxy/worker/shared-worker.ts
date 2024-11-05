@@ -5,7 +5,13 @@ import { SearchEngine } from 'cozy-dataproxy-lib'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
 
-import { FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE } from '@/consts'
+import {
+  FILES_DOCTYPE,
+  CONTACTS_DOCTYPE,
+  APPS_DOCTYPE,
+  REPLICATION_DEBOUNCE,
+  REPLICATION_DEBOUNCE_MAX_DELAY
+} from '@/consts'
 import {
   ClientData,
   DataProxyWorker,
@@ -33,6 +39,8 @@ const dataProxy: DataProxyWorker = {
       doctypes: [FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE],
       initialSync: true,
       periodicSync: false,
+      syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
+      syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
       platform: { ...platformWorker },
       doctypesReplicationOptions: {
         [FILES_DOCTYPE]: {

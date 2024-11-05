@@ -4,6 +4,7 @@ import type { ClientCapabilities } from 'cozy-client/types/types'
 export interface DataProxyWorker {
   search: (query: string) => unknown
   setup: (clientData: ClientData) => Promise<void>
+  forceSyncPouch: () => void
 }
 
 export interface DataProxyWorkerPartialState {

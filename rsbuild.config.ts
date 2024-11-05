@@ -54,6 +54,10 @@ export default defineConfig({
               from: 'src/targets/public/index.html',
               to: 'reset/index.html'
             },
+            {
+              from: 'src/targets/public/reset.js',
+              to: 'reset/reset.js'
+            },
           ],
         })
       ]

@@ -40,3 +40,5 @@ export const DOCTYPE_ORDER = {
   [CONTACTS_DOCTYPE]: 1,
   [FILES_DOCTYPE]: 2
 }
+
+export const LOCALSTORAGE_KEY_DELETING_DATA = 'deletingLocalData'

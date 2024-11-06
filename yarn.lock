@@ -2273,6 +2273,14 @@ cozy-client@^50.1.0:
     sift "^6.0.0"
     url-search-params-polyfill "^8.0.0"
 
+cozy-dataproxy-lib@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-1.1.1.tgz#2a70f62ef92cff6fea156408db3e2ed48ada2918"
+  integrity sha512-iHLJRU6lTtN8MxQU5thepcIaaWzd3RwPOnmigC95O1Yy/heoTDVTZlBC1B937tbBJZbuVO7OdDINt5iSGjNEEg==
+  dependencies:
+    comlink "^4.4.1"
+    flexsearch "^0.7.43"
+
 cozy-device-helper@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/cozy-device-helper/-/cozy-device-helper-3.1.0.tgz#140079bf4a6844b21d6ac0a3a2d75741dba15faa"

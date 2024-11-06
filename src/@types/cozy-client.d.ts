@@ -184,6 +184,7 @@ declare module 'cozy-client' {
     capabilities: ClientCapabilities
     registerPlugin: (Plugin: Function, options: unknown) => void
     getCollectionFromState: (doctype: string) => unknown
+    setLinks: (links: unknown[]) => void
   }
 
   export const createMockClient = (options?: ClientOptions): CozyClient =>

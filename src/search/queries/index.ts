@@ -36,11 +36,3 @@ export const queryFilesForSearch = async (
 
   return normalizedFiles
 }
-
-export const queryAllContacts = (client: CozyClient): Promise<CozyDoc[]> => {
-  return client.queryAll(Q(CONTACTS_DOCTYPE).limitBy(1000))
-}
-
-export const queryAllApps = (client: CozyClient): Promise<CozyDoc[]> => {
-  return client.queryAll(Q(APPS_DOCTYPE).limitBy(1000))
-}

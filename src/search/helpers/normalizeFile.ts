@@ -44,11 +44,15 @@ export const addFilePaths = (
   const filesResults = normResults
     .map(res => res.doc)
     .filter(doc => isIOCozyFile(doc))
+  console.log("files results : ", filesResults);
   const files = filesResults.filter(file => file.type === TYPE_FILE)
+  console.log("files : ", files);
 
   if (files.length > 0) {
     const dirIds = files.map(file => file.dir_id)
+    console.log("dirIds : ", dirIds);
     const parentDirs = getDirsFromStore(client, dirIds)
+    console.log("parent dirs : ", parentDirs);
     for (const file of files) {
       const dir = parentDirs.find(dir => dir._id === file.dir_id)
       if (dir) {
@@ -67,6 +71,7 @@ const getDirsFromStore = (
   // XXX querying from store is surprisingly slow: 100+ ms for 50 docs, while
   // this approach takes 2-3ms... It should be investigated in cozy-client
   const allFiles = client.getCollectionFromState(FILES_DOCTYPE) as IOCozyFile[]
+  console.log('all files : ', allFiles);
   const dirs = allFiles.filter(file => file.type === TYPE_DIRECTORY)
   return dirs.filter(dir => dirIds.includes(dir._id))
 }

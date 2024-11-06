@@ -12,7 +12,8 @@ import {
   DOCTYPE_ORDER,
   LIMIT_DOCTYPE_SEARCH,
   REPLICATION_DEBOUNCE,
-  SearchedDoctype
+  SearchedDoctype,
+  SEARCHABLE_DOCTYPES
 } from '@/search/consts'
 import { getPouchLink } from '@/search/helpers/client'
 import { getSearchEncoder } from '@/search/helpers/getSearchEncoder'
@@ -48,6 +49,7 @@ class SearchEngine {
   client: CozyClient
   searchIndexes: SearchIndexes
   debouncedReplication: () => void
+  isLocalSearch: boolean
 
   constructor(client: CozyClient) {
     this.client = client
@@ -58,15 +60,29 @@ class SearchEngine {
       client,
       REPLICATION_DEBOUNCE
     )
+
+    this.isLocalSearch = !!getPouchLink(this.client)
+    log.info('Use local data on trusted device : ', this.isLocalSearch)
+
+    if (!this.isLocalSearch) {
+      // In case of non-local search, force the indexing for all doctypes
+      // For local search, this will be done automatically after initial replication
+      for (const doctype of SEARCHABLE_DOCTYPES) {
+        this.indexDocsForSearch(doctype as keyof typeof SEARCH_SCHEMA)
+      }
+    }
   }
 
   indexOnChanges(): void {
     if (!this.client) {
       return
     }
+    // TODO : no replication for stack link. refactor to index on init
     this.client.on('pouchlink:doctypesync:end', async (doctype: string) => {
       if (isSearchedDoctype(doctype)) {
-        await this.indexDocsForSearch(doctype as keyof typeof SEARCH_SCHEMA)
+        this.searchIndexes[doctype] = await this.indexDocsForSearch(
+          doctype as keyof typeof SEARCH_SCHEMA
+        )
       }
     })
     this.client.on('login', () => {
@@ -103,7 +119,9 @@ class SearchEngine {
     log.debug('[REALTIME] index doc after update : ', doc)
     this.addDocToIndex(searchIndex.index, doc)
 
-    this.debouncedReplication()
+    if (this.isLocalSearch) {
+      this.debouncedReplication()
+    }
   }
 
   handleDeletedDoc(doc: CozyDoc): void {
@@ -119,13 +137,17 @@ class SearchEngine {
     log.debug('[REALTIME] remove doc from index after update : ', doc)
     this.searchIndexes[doctype].index.remove(doc._id!)
 
-    this.debouncedReplication()
+    if (this.isLocalSearch) {
+      this.debouncedReplication()
+    }
   }
 
   buildSearchIndex(
     doctype: keyof typeof SEARCH_SCHEMA,
     docs: CozyDoc[]
   ): FlexSearch.Document<CozyDoc, true> {
+    const startTimeIndex = performance.now()
+
     const fieldsToIndex = SEARCH_SCHEMA[doctype]
 
     const flexsearchIndex = new FlexSearch.Document<CozyDoc, true>({
@@ -144,6 +166,10 @@ class SearchEngine {
       this.addDocToIndex(flexsearchIndex, doc)
     }
 
+    const endTimeIndex = performance.now()
+    log.debug(
+      `Create ${doctype} index took ${(endTimeIndex - startTimeIndex).toFixed(2)} ms`
+    )
     return flexsearchIndex
   }
 
@@ -163,47 +189,59 @@ class SearchEngine {
     return true
   }
 
-  async indexDocsForSearch(
+  async getLocalLastSeq(doctype: keyof typeof SEARCH_SCHEMA): Promise<number> {
+    if (this.isLocalSearch) {
+      const pouchLink = getPouchLink(this.client)
+      const info = pouchLink ? await pouchLink.getDbInfo(doctype) : null
+      return info?.update_seq || 0
+    }
+    return -1
+  }
+
+  async queryLocalOrRemoteDocs(
     doctype: keyof typeof SEARCH_SCHEMA
-  ): Promise<SearchIndex | null> {
-    const searchIndex = this.searchIndexes[doctype]
+  ): Promise<CozyDoc[]> {
+    let docs = []
+    const startTimeQ = performance.now()
+
+    if (!this.isLocalSearch && doctype === FILES_DOCTYPE) {
+      // Special case for stack's files
+      docs = await queryFilesForSearch(this.client)
+    } else {
+      docs = await this.client.queryAll<CozyDoc[]>(Q(doctype).limitBy(null))
+    }
+
+    const endTimeQ = performance.now()
+    log.debug(
+      `Query ${docs.length} docs doctype ${doctype} took ${(endTimeQ - startTimeQ).toFixed(2)} ms`
+    )
+    return docs
+  }
+
+  async initialIndexation(
+    doctype: keyof typeof SEARCH_SCHEMA
+  ): Promise<SearchIndex> {
+    const docs = await this.queryLocalOrRemoteDocs(doctype)
+    const index = this.buildSearchIndex(doctype, docs)
+    const lastSeq = await this.getLocalLastSeq(doctype)
+
+    this.searchIndexes[doctype] = {
+      index,
+      lastSeq,
+      lastUpdated: new Date().toISOString()
+    }
+    return this.searchIndexes[doctype]
+  }
+
+  async incrementalIndexation(
+    doctype: keyof typeof SEARCH_SCHEMA,
+    searchIndex: SearchIndex
+  ): Promise<SearchIndex> {
     const pouchLink = getPouchLink(this.client)
-
-    if (!pouchLink) {
-      return null
+    if (!this.isLocalSearch || !pouchLink) {
+      // No need to handle incremental indexation for non-local search: it is already done through realtime
+      return searchIndex
     }
-
-    if (!searchIndex) {
-      // First creation of search index
-      const startTimeQ = performance.now()
-      const docs = await this.client.queryAll<CozyDoc[]>(
-        Q(doctype).limitBy(null)
-      )
-      const endTimeQ = performance.now()
-      log.debug(
-        `Query ${docs.length} docs doctype ${doctype} took ${(endTimeQ - startTimeQ).toFixed(2)} ms`
-      )
-
-      const startTimeIndex = performance.now()
-      const index = this.buildSearchIndex(doctype, docs)
-      const endTimeIndex = performance.now()
-      log.debug(
-        `Create ${doctype} index took ${(endTimeIndex - startTimeIndex).toFixed(2)} ms`
-      )
-      const info = await pouchLink.getDbInfo(doctype)
-
-      this.searchIndexes[doctype] = {
-        index,
-        lastSeq: info?.update_seq,
-        lastUpdated: new Date().toISOString()
-      }
-      return this.searchIndexes[doctype]
-    }
-
-    // Incremental index update
-    // At this point, the search index are supposed to be already up-to-date,
-    // thanks to the realtime.
-    // However, we check it is actually the case for safety, and update the lastSeq
     const lastSeq = searchIndex.lastSeq || 0
     const changes = await pouchLink.getChanges(doctype, {
       include_docs: true,
@@ -224,34 +262,20 @@ class SearchEngine {
     return searchIndex
   }
 
-  initIndexesFromStack = async (): Promise<SearchIndexes> => {
-    log.debug('Initializing indexes')
+  async indexDocsForSearch(
+    doctype: keyof typeof SEARCH_SCHEMA
+  ): Promise<SearchIndex> {
+    const searchIndex = this.searchIndexes[doctype]
 
-    const files = await queryFilesForSearch(this.client)
-    const filesIndex = this.buildSearchIndex('io.cozy.files', files)
-
-    const contacts = await queryAllContacts(this.client)
-    const contactsIndex = this.buildSearchIndex('io.cozy.contacts', contacts)
-
-    const apps = await queryAllApps(this.client)
-    const appsIndex = this.buildSearchIndex('io.cozy.apps', apps)
-
-    log.debug('Finished initializing indexes')
-    const currentDate = new Date().toISOString()
-    this.searchIndexes = {
-      [FILES_DOCTYPE]: {
-        index: filesIndex,
-        lastSeq: 0,
-        lastUpdated: currentDate
-      },
-      [CONTACTS_DOCTYPE]: {
-        index: contactsIndex,
-        lastSeq: 0,
-        lastUpdated: currentDate
-      },
-      [APPS_DOCTYPE]: { index: appsIndex, lastSeq: 0, lastUpdated: currentDate }
+    if (!searchIndex) {
+      // First creation of search index
+      return this.initialIndexation(doctype)
     }
-    return this.searchIndexes
+
+    // At this point, the search index is supposed to be already up-to-date,
+    // thanks to the realtime.
+    // However, we check if it is actually the case for safety, and update the lastSeq
+    return this.incrementalIndexation(doctype, searchIndex)
   }
 
   search(query: string): SearchResult[] {
@@ -267,7 +291,9 @@ class SearchEngine {
     const results = this.limitSearchResults(sortedResults)
 
     const normResults: SearchResult[] = []
-    const completedResults = addFilePaths(this.client, results)
+    const completedResults = this.isLocalSearch
+      ? addFilePaths(this.client, results)
+      : results
     for (const res of completedResults) {
       const normalizedRes = normalizeSearchResult(this.client, res, query)
       normResults.push(normalizedRes)

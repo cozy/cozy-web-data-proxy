@@ -17,8 +17,8 @@ import {
   DataProxyWorker,
   DataProxyWorkerPartialState
 } from '@/dataproxy/common/DataProxyInterface'
+import { queryIsTrustedDevice } from '@/dataproxy/worker/data'
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
-import { queryIsTrustedDevice } from '@/dataproxy/worker/utils'
 import schema from '@/doctypes'
 import { getPouchLink } from '@/helpers/client'
 

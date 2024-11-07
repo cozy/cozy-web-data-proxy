@@ -10,7 +10,7 @@ import {
   DataProxyWorkerPartialState
 } from '@/dataproxy/common/DataProxyInterface'
 import { TabCountSync } from '@/dataproxy/common/TabCountSync'
-import { removeStaleLocalData } from '@/dataproxy/worker/utils'
+import { removeStaleLocalData } from '@/dataproxy/worker/data'
 
 const log = Minilog('👷‍♂️ [SharedWorkerProvider]')
 

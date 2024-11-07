@@ -1,6 +1,6 @@
 import * as Comlink from 'comlink'
 
-import CozyClient from 'cozy-client'
+import CozyClient, { StackLink } from 'cozy-client'
 import { SearchEngine } from 'cozy-dataproxy-lib'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
@@ -18,6 +18,7 @@ import {
   DataProxyWorkerPartialState
 } from '@/dataproxy/common/DataProxyInterface'
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
+import { queryIsTrustedDevice } from '@/dataproxy/worker/utils'
 import schema from '@/doctypes'
 import { getPouchLink } from '@/helpers/client'
 
@@ -63,9 +64,17 @@ const dataProxy: DataProxyWorker = {
         version: '1'
       },
       schema,
-      store: true,
-      links: [new PouchLink(pouchLinkOptions)]
+      store: true
     })
+
+    // If the device is not trusted, we do not want to store any private data in Pouch
+    // So use the PouchLink only if the user declared a trustful device for the given session
+    const isTrustedDevice = await queryIsTrustedDevice(client)
+    const link = isTrustedDevice
+      ? new PouchLink(pouchLinkOptions)
+      : new StackLink()
+
+    client.setLinks([link])
     client.instanceOptions = clientData.instanceOptions
     client.capabilities = clientData.capabilities
 

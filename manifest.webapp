@@ -1,0 +1,48 @@
+{
+  "name": "cozy-data-proxy",
+  "slug": "dataproxy",
+  "icon": "icon.svg",
+  "categories": ["cozy"],
+  "version": "0.1.0",
+  "licence": "AGPL-3.0",
+  "editor": "Cozy",
+  "source": "https://github.com/cozy/cozy-web-data-proxy",
+  "developer": {
+    "name": "cozy",
+    "url": "https://cozy.io"
+  },
+  "routes": {
+    "/": {
+      "folder": "/",
+      "index": "index.html",
+      "public": false
+    },
+    "/reset": {
+      "folder": "/reset",
+      "index": "index.html",
+      "public": true
+    }
+  },
+  "intents": [
+    {
+      "action": "OPEN",
+      "type": ["io.cozy.dataproxy"],
+      "href": "/"
+    }
+  ],
+  "permissions": {
+    "apps": {
+      "description": "Required to search in apps",
+      "type": "io.cozy.apps",
+      "verbs": ["GET"]
+    },
+    "files": {
+      "description": "Required to search in files",
+      "type": "io.cozy.files"
+    },
+    "contacts": {
+      "description": "Required to search in contacts",
+      "type": "io.cozy.contacts"
+    }
+  }
+}

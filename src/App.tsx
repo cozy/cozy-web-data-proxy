@@ -18,7 +18,11 @@ const App = (): JSX.Element => {
   return (
     <div className="content">
       <h1>Cozy DataProxy</h1>
-      <p>{client?.getStackClient().uri}</p>
+      <p>
+        This is a technical app in your Cozy. It is used to mutualize local data
+        between your apps and provide sync and local access to it.
+      </p>
+      <p>URL: {client?.getStackClient().uri}</p>
       <p>Status: {workerState.status}</p>
       <p>Count: {workerState.tabCount}</p>
       {workerState.indexLength?.map(indexLength => {

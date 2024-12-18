@@ -1,7 +1,7 @@
 import * as Comlink from 'comlink'
 
 import CozyClient, { StackLink } from 'cozy-client'
-import { SearchEngine } from 'cozy-dataproxy-lib'
+import { SearchEngine } from 'cozy-dataproxy-lib/api'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
 

@@ -3,7 +3,7 @@
   "slug": "dataproxy",
   "icon": "icon.svg",
   "categories": ["cozy"],
-  "version": "0.1.0",
+  "version": "1.0.0",
   "licence": "AGPL-3.0",
   "editor": "Cozy",
   "source": "https://github.com/cozy/cozy-web-data-proxy",

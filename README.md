@@ -1,5 +1,7 @@
 # Rsbuild Project
 
+This app is used as a data proxy to other apps  
+
 ## Setup
 
 Install the dependencies:

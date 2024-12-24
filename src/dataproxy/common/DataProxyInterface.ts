@@ -1,8 +1,13 @@
 import type { InstanceOptions } from 'cozy-client'
 import type { ClientCapabilities } from 'cozy-client/types/types'
 
+// TODO: Should be imported from cozy-dataproxy-lib
+export interface SearchOptions {
+  doctypes: string[]
+}
+
 export interface DataProxyWorker {
-  search: (query: string) => unknown
+  search: (query: string, options: SearchOptions) => unknown
   setup: (clientData: ClientData) => Promise<void>
   forceSyncPouch: () => void
 }

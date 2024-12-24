@@ -15,7 +15,8 @@ import {
 import {
   ClientData,
   DataProxyWorker,
-  DataProxyWorkerPartialState
+  DataProxyWorkerPartialState,
+  SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
 import { queryIsTrustedDevice } from '@/dataproxy/worker/data'
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
@@ -84,7 +85,7 @@ const dataProxy: DataProxyWorker = {
     updateState()
   },
 
-  search: (query: string) => {
+  search: (query: string, options: SearchOptions | undefined) => {
     if (!client) {
       throw new Error(
         'Client is required to execute a search, please initialize CozyClient'
@@ -94,7 +95,7 @@ const dataProxy: DataProxyWorker = {
       throw new Error('SearchEngine is not initialized')
     }
     const startSearchTime = performance.now()
-    const results = searchEngine.search(query)
+    const results = searchEngine.search(query, options)
     const endSearchTime = performance.now()
     log.debug(`Search took ${endSearchTime - startSearchTime} ms`)
     return results

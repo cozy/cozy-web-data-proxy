@@ -75,7 +75,7 @@ const dataProxy: DataProxyWorker = {
       ? new PouchLink(pouchLinkOptions)
       : new StackLink()
 
-    client.setLinks([link])
+    await client.setLinks([link])
     client.instanceOptions = clientData.instanceOptions
     client.capabilities = clientData.capabilities
 

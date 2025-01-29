@@ -2253,31 +2253,6 @@ cozy-app-publish@^0.34.0:
     tar "^6.1.11"
     verror "^1.10.1"
 
-cozy-client@^50.4.0:
-  version "50.4.0"
-  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-50.4.0.tgz#dc341e71b2acee90342cf86e17392e890e7e7093"
-  integrity sha512-DINi/YwDrzBkXzcm63hFj8Y09yzzLaRWhJqyCu1JT6bdIpV2jc9lJMJe1pcud8xfg29OzSQ5/8gDf5MaQLkzsQ==
-  dependencies:
-    "@cozy/minilog" "1.0.0"
-    "@types/jest" "^26.0.20"
-    "@types/lodash" "^4.14.170"
-    btoa "^1.2.1"
-    cozy-stack-client "^50.4.0"
-    date-fns "2.29.3"
-    json-stable-stringify "^1.0.1"
-    lodash "^4.17.13"
-    microee "^0.0.6"
-    node-fetch "^2.6.1"
-    node-polyglot "2.4.2"
-    open "7.4.2"
-    prop-types "^15.6.2"
-    react-redux "^7.2.0"
-    redux "3 || 4"
-    redux-thunk "^2.3.0"
-    server-destroy "^1.0.1"
-    sift "^6.0.0"
-    url-search-params-polyfill "^8.0.0"
-
 cozy-client@^53.1.1:
   version "53.1.1"
   resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-53.1.1.tgz#d8cca5d3c5ea67be074a96d66339c81212d75bc7"
@@ -2303,14 +2278,13 @@ cozy-client@^53.1.1:
     sift "^6.0.0"
     url-search-params-polyfill "^8.0.0"
 
-cozy-dataproxy-lib@^2.3.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-2.3.0.tgz#c702c36a674c61edffd31e10d3c9e3665f64c4ef"
-  integrity sha512-rDYd3yOykArExr8Iz/hoP+2jI57NX0Z/LIDsPmH3W9vifXnb1SVBfekxE4vNXj9vJKLSZ8vfKgl3OuqYbOKVow==
+cozy-dataproxy-lib@3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-3.0.2.tgz#2ea66ab3d8807e463a636fd6d63b77d1c4cadbd7"
+  integrity sha512-V2XqKpoZpZyIOGoy910JsvgfI8m9KH1evfZyTaI0H8VaaxF1foMc1/M7jfu0V0wXlcJH+vwy64nQi+XWWDGRwA==
   dependencies:
     classnames "2.5.1"
     comlink "4.4.1"
-    cozy-pouch-link "^50.3.1"
     flexsearch "0.7.43"
     lodash "4.17.21"
     mime-types "2.1.35"
@@ -2331,6 +2305,14 @@ cozy-flags@^4.0.0:
   dependencies:
     microee "^0.0.6"
 
+cozy-intent@^2.29.2:
+  version "2.29.2"
+  resolved "https://registry.yarnpkg.com/cozy-intent/-/cozy-intent-2.29.2.tgz#ea806fdac715c52432eb4bb06d9ecddd964b81ed"
+  integrity sha512-qYMNUzaGCK4ILRP/uLk0zjNhcNXXNZB1yPM+L+w/0Gmz6VO97Iym5eQ2dyk/GtSvlMNK8MhP5MXrwNStAaqWvw==
+  dependencies:
+    cozy-minilog "^3.9.1"
+    post-me "0.4.5"
+
 cozy-logger@^1.10.4:
   version "1.10.4"
   resolved "https://registry.yarnpkg.com/cozy-logger/-/cozy-logger-1.10.4.tgz#8a55a0b1fc23db9cf90524043d959c274d376c24"
@@ -2346,14 +2328,12 @@ cozy-minilog@^3.3.1:
   dependencies:
     microee "0.0.6"
 
-cozy-pouch-link@^50.3.1:
-  version "50.4.0"
-  resolved "https://registry.yarnpkg.com/cozy-pouch-link/-/cozy-pouch-link-50.4.0.tgz#6cd18521a8652502783d35ec6735de40af47ce62"
-  integrity sha512-7CkyEpsjjxE/24oMsxOcrQT+FWi7LPK0kYKx/KoiD7VX1QxHcZSubjnPjREJJkECs1JwIiAH5z/h99qVO4hArQ==
+cozy-minilog@^3.9.1:
+  version "3.9.1"
+  resolved "https://registry.yarnpkg.com/cozy-minilog/-/cozy-minilog-3.9.1.tgz#8a89743664145da7b1808d78cc53daacaa97e758"
+  integrity sha512-UwtNfRWKIWpNA4NK2MovPvUalijmYpFk726r1zxLlMixRTBtHTqVZtEcDF+3PrE5o5UiUAUC8Z+MWiz3ivstbw==
   dependencies:
-    cozy-client "^50.4.0"
-    pouchdb-browser "^7.2.2"
-    pouchdb-find "^7.2.2"
+    microee "0.0.6"
 
 cozy-pouch-link@^53.1.1:
   version "53.1.1"
@@ -2371,15 +2351,6 @@ cozy-realtime@^5.0.2:
   dependencies:
     "@cozy/minilog" "^1.0.0"
     cozy-device-helper "^3.1.0"
-
-cozy-stack-client@^50.4.0:
-  version "50.4.0"
-  resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-50.4.0.tgz#3326a1299cacb06b95a484dc656cc301ce811ade"
-  integrity sha512-u8NXO6uUrcT0SggtOePpOXftGdwe1zCiOHQIzvUAeuZIt4mVruF1zYXaPz90/zI4pHzr8mHH2h6KXHgH1McjWA==
-  dependencies:
-    detect-node "^2.0.4"
-    mime "^2.4.0"
-    qs "^6.7.0"
 
 cozy-stack-client@^53.0.0:
   version "53.0.0"
@@ -5200,6 +5171,11 @@ possible-typed-array-names@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/possible-typed-array-names/-/possible-typed-array-names-1.0.0.tgz#89bb63c6fada2c3e90adc4a647beeeb39cc7bf8f"
   integrity sha512-d7Uw+eZoloe0EHDIYoe+bQ5WXnGMOpmiZFTuMWCwpjzzkL2nTjcKiAk4hh8TjnGye2TwWOk3UXucZ+3rbmBa8Q==
+
+post-me@0.4.5:
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/post-me/-/post-me-0.4.5.tgz#6171b721c7b86230c51cfbe48ddea047ef8831ce"
+  integrity sha512-XgPdktF/2M5jglgVDULr9NUb/QNv3bY3g6RG22iTb5MIMtB07/5FJB5fbVmu5Eaopowc6uZx7K3e7x1shPwnXw==
 
 pouchdb-abstract-mapreduce@7.3.1:
   version "7.3.1"

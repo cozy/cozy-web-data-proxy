@@ -10,6 +10,7 @@ export interface DataProxyWorker {
   search: (query: string, options: SearchOptions) => unknown
   setup: (clientData: ClientData) => Promise<void>
   forceSyncPouch: () => void
+  query: (queryDef) => Promise<void>
 }
 
 export interface DataProxyWorkerPartialState {

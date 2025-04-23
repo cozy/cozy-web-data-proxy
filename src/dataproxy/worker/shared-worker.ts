@@ -19,7 +19,10 @@ import {
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
 import { queryIsTrustedDevice } from '@/dataproxy/worker/data'
-import { platformWorker } from '@/dataproxy/worker/platformWorker'
+import {
+  platformWorker,
+  searchEngineStorage
+} from '@/dataproxy/worker/platformWorker'
 import schema from '@/doctypes'
 import { getPouchLink } from '@/helpers/client'
 
@@ -44,6 +47,11 @@ const dataProxy: DataProxyWorker = {
       syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
       syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
       platform: { ...platformWorker },
+      pouch: {
+        options: {
+          adapter: 'indexeddb'
+        }
+      },
       doctypesReplicationOptions: {
         [FILES_DOCTYPE]: {
           strategy: 'fromRemote'
@@ -79,7 +87,7 @@ const dataProxy: DataProxyWorker = {
     client.instanceOptions = clientData.instanceOptions
     client.capabilities = clientData.capabilities
 
-    searchEngine = new SearchEngine(client)
+    searchEngine = new SearchEngine(client, searchEngineStorage)
 
     log.debug('Setup done')
     updateState()
@@ -111,6 +119,20 @@ const dataProxy: DataProxyWorker = {
     if (pouchLink) {
       pouchLink.startReplication()
     }
+  },
+
+  query: async queryDef => {
+    console.log('queryDef: ', queryDef);
+    if (!client) {
+      throw new Error(
+        'Client is required to execute a query, please initialize CozyClient'
+      )
+    }
+    const stratQ = performance.now()
+    const resp = await client.query(queryDef);
+
+    console.log('resp shared workre: ', resp);
+    return resp
   }
 }
 

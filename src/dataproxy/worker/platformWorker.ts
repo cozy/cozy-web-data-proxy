@@ -1,7 +1,14 @@
 import PouchDB from 'pouchdb-browser'
+import PouchDBFind from 'pouchdb-find'
+import PouchIDBAdapter from 'pouchdb-adapter-indexeddb'
+
+import { IndexedDBQueryEngine } from 'cozy-pouch-link'
 
 const dbName = 'sharedWorkerStorage'
 let db: IDBDatabase | null = null
+
+PouchDB.plugin(PouchDBFind)
+PouchDB.plugin(PouchIDBAdapter)
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -100,6 +107,16 @@ const storage = {
   }
 }
 
+export const searchEngineStorage = {
+  storeData: async (key: string, value: unknown): Promise<void> => {
+    return storage.setItem(key, value)
+  },
+  getData: async <T>(key: string): Promise<T | null> => {
+    const item = storage.getItem(key)
+    return item ? (item as T) : null
+  }
+}
+
 const events = {
   addEventListener: (
     eventName: string,
@@ -124,5 +141,6 @@ export const platformWorker = {
   events,
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   pouchAdapter: PouchDB,
-  isOnline
+  isOnline,
+  queryEngine: IndexedDBQueryEngine
 }

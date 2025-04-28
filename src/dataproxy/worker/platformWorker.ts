@@ -100,6 +100,16 @@ const storage = {
   }
 }
 
+export const searchEngineStorage = {
+  storeData: async (key: string, value: unknown): Promise<void> => {
+    return storage.setItem(key, value)
+  },
+  getData: async <T>(key: string): Promise<T | null> => {
+    const item = storage.getItem(key)
+    return item ? (item as T) : null
+  }
+}
+
 const events = {
   addEventListener: (
     eventName: string,

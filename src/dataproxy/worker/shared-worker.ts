@@ -1,7 +1,7 @@
 import * as Comlink from 'comlink'
 
 import CozyClient, { StackLink } from 'cozy-client'
-import { SearchEngine } from 'cozy-dataproxy-lib/api'
+import { SearchEngine } from 'cozy-dataproxy-lib'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
 
@@ -19,7 +19,10 @@ import {
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
 import { queryIsTrustedDevice } from '@/dataproxy/worker/data'
-import { platformWorker } from '@/dataproxy/worker/platformWorker'
+import {
+  platformWorker,
+  searchEngineStorage
+} from '@/dataproxy/worker/platformWorker'
 import schema from '@/doctypes'
 import { getPouchLink } from '@/helpers/client'
 
@@ -79,7 +82,7 @@ const dataProxy: DataProxyWorker = {
     client.instanceOptions = clientData.instanceOptions
     client.capabilities = clientData.capabilities
 
-    searchEngine = new SearchEngine(client)
+    searchEngine = new SearchEngine(client, searchEngineStorage)
 
     log.debug('Setup done')
     updateState()

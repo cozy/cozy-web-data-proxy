@@ -1,6 +1,13 @@
 import * as Comlink from 'comlink'
 import React, { ReactNode } from 'react'
 
+import { QueryDefinition } from 'cozy-client'
+import {
+  Mutation,
+  MutationOptions,
+  QueryOptions
+} from 'cozy-client/types/types'
+
 import {
   DataProxyWorkerContext,
   SearchOptions
@@ -32,6 +39,12 @@ export const ParentWindowProvider = React.memo(
         const result = await workerContext.worker.search(search, options)
 
         return result
+      },
+      requestLink: async (
+        operation: QueryDefinition | Mutation,
+        options?: QueryOptions | MutationOptions | undefined
+      ): Promise<unknown> => {
+        return workerContext.worker.requestLink(operation, options)
       }
     }
 

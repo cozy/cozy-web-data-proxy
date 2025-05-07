@@ -1,5 +1,10 @@
-import type { InstanceOptions } from 'cozy-client'
-import type { ClientCapabilities } from 'cozy-client/types/types'
+import type { InstanceOptions, QueryDefinition } from 'cozy-client'
+import type {
+  ClientCapabilities,
+  Mutation,
+  MutationOptions,
+  QueryOptions
+} from 'cozy-client/types/types'
 
 // TODO: Should be imported from cozy-dataproxy-lib
 export interface SearchOptions {
@@ -10,6 +15,10 @@ export interface DataProxyWorker {
   search: (query: string, options: SearchOptions) => unknown
   setup: (clientData: ClientData) => Promise<void>
   forceSyncPouch: () => void
+  requestLink: (
+    definition: QueryDefinition | Mutation,
+    options?: QueryOptions | MutationOptions
+  ) => Promise<unknown>
 }
 
 export interface DataProxyWorkerPartialState {

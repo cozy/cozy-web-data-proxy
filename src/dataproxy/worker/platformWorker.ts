@@ -1,7 +1,12 @@
+import PouchIndexedDBAdapter from 'pouchdb-adapter-indexeddb'
 import PouchDB from 'pouchdb-browser'
+import PouchDBFind from 'pouchdb-find'
 
 const dbName = 'sharedWorkerStorage'
 let db: IDBDatabase | null = null
+
+PouchDB.plugin(PouchDBFind)
+PouchDB.plugin(PouchIndexedDBAdapter)
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {

@@ -38,7 +38,7 @@ const makeClient = (container: HTMLElement): CozyClient => {
       version: manifest.version
     },
     schema,
-    store: true
+    disableStoreForQueries: true
   })
 
   return client

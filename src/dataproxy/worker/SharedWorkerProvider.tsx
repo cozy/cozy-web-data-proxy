@@ -62,7 +62,7 @@ export const SharedWorkerProvider = React.memo(
         log.debug('Provide CozyClient data to SharedWorker')
         const { uri, token } = client.getStackClient()
 
-        obj.setup({
+        await obj.setup({
           uri,
           token: token.token,
           instanceOptions: client.instanceOptions,

@@ -15,6 +15,11 @@ interface ParentWindowProviderProps {
   children: ReactNode
 }
 
+const sendReadyMessage = (): void => {
+  // This is useful to inform the parent apps that the DataProxy's iframe is ready to be requested
+  window.parent.postMessage({ type: 'DATAPROXYMESSAGE', payload: 'READY' }, '*')
+}
+
 export const ParentWindowProvider = React.memo(
   ({ children }: ParentWindowProviderProps) => {
     const workerContext = useSharedWorker()
@@ -31,6 +36,7 @@ export const ParentWindowProvider = React.memo(
     }
 
     Comlink.expose(iframeProxy, Comlink.windowEndpoint(parent))
+    sendReadyMessage()
 
     if (!workerContext) return undefined
 

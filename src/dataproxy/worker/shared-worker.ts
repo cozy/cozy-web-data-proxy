@@ -1,6 +1,11 @@
 import * as Comlink from 'comlink'
 
-import CozyClient, { StackLink } from 'cozy-client'
+import CozyClient, { QueryDefinition, StackLink } from 'cozy-client'
+import {
+  Mutation,
+  MutationOptions,
+  QueryOptions
+} from 'cozy-client/types/types'
 import { SearchEngine } from 'cozy-dataproxy-lib'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
@@ -9,6 +14,10 @@ import {
   FILES_DOCTYPE,
   CONTACTS_DOCTYPE,
   APPS_DOCTYPE,
+  ACCOUNTS_DOCTYPE,
+  KONNECTORS_DOCTYPE,
+  TRIGGERS_DOCTYPE,
+  SETTINGS_DOCTYPE,
   REPLICATION_DEBOUNCE,
   REPLICATION_DEBOUNCE_MAX_DELAY
 } from '@/consts'
@@ -41,12 +50,26 @@ const dataProxy: DataProxyWorker = {
     updateState()
 
     const pouchLinkOptions = {
-      doctypes: [FILES_DOCTYPE, CONTACTS_DOCTYPE, APPS_DOCTYPE],
+      doctypes: [
+        FILES_DOCTYPE,
+        CONTACTS_DOCTYPE,
+        APPS_DOCTYPE,
+        ACCOUNTS_DOCTYPE,
+        TRIGGERS_DOCTYPE,
+        KONNECTORS_DOCTYPE,
+        SETTINGS_DOCTYPE
+      ],
+      readOnly: true,
       initialSync: true,
       periodicSync: false,
       syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
       syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
       platform: { ...platformWorker },
+      pouch: {
+        options: {
+          adapter: 'indexeddb'
+        }
+      },
       doctypesReplicationOptions: {
         [FILES_DOCTYPE]: {
           strategy: 'fromRemote'
@@ -55,6 +78,18 @@ const dataProxy: DataProxyWorker = {
           strategy: 'fromRemote'
         },
         [APPS_DOCTYPE]: {
+          strategy: 'fromRemote'
+        },
+        [ACCOUNTS_DOCTYPE]: {
+          strategy: 'fromRemote'
+        },
+        [KONNECTORS_DOCTYPE]: {
+          strategy: 'fromRemote'
+        },
+        [TRIGGERS_DOCTYPE]: {
+          strategy: 'fromRemote'
+        },
+        [SETTINGS_DOCTYPE]: {
           strategy: 'fromRemote'
         }
       }
@@ -68,17 +103,18 @@ const dataProxy: DataProxyWorker = {
         version: '1'
       },
       schema,
-      store: true
+      disableStoreForQueries: true
     })
 
     // If the device is not trusted, we do not want to store any private data in Pouch
     // So use the PouchLink only if the user declared a trustful device for the given session
     const isTrustedDevice = await queryIsTrustedDevice(client)
-    const link = isTrustedDevice
-      ? new PouchLink(pouchLinkOptions)
-      : new StackLink()
+    // TODO: we should add the possibility to disable the pouchlink with a flag
+    const links = isTrustedDevice
+      ? [new PouchLink(pouchLinkOptions), new StackLink()]
+      : [new StackLink()]
 
-    await client.setLinks([link])
+    await client.setLinks(links)
     client.instanceOptions = clientData.instanceOptions
     client.capabilities = clientData.capabilities
 
@@ -102,6 +138,26 @@ const dataProxy: DataProxyWorker = {
     const endSearchTime = performance.now()
     log.debug(`Search took ${endSearchTime - startSearchTime} ms`)
     return results
+  },
+
+  requestLink: async (
+    operation: QueryDefinition | Mutation,
+    options?: QueryOptions | MutationOptions | undefined
+  ): Promise<unknown> => {
+    if (!client) {
+      throw new Error(
+        'Client is required to request, please initialize CozyClient'
+      )
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (operation.mutationType) {
+      return client.requestMutation(operation, options)
+    }
+    const queryRes = (await client.requestQuery(
+      operation as QueryDefinition,
+      options as QueryOptions
+    )) as unknown
+    return queryRes
   },
 
   forceSyncPouch: () => {

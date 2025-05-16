@@ -28,6 +28,7 @@ declare module 'cozy-client' {
     token?: Token
     uri?: string
     warningForCustomHandlers?: boolean
+    disableStoreForQueries?: boolean
   }
 
   interface OAuthOptions {
@@ -185,6 +186,14 @@ declare module 'cozy-client' {
     registerPlugin: (Plugin: Function, options: unknown) => void
     getCollectionFromState: (doctype: string) => unknown
     setLinks: (links: unknown[]) => void
+    requestMutation: (
+      definition: Mutation,
+      options?: MutationOptions
+    ) => Promise<ClientResponse>
+    requestQuery: (
+      definition: QueryDefinition,
+      options?: QueryOptions
+    ) => Promise<ClientResponse>
   }
 
   export const createMockClient = (options?: ClientOptions): CozyClient =>

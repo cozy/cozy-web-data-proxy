@@ -2344,10 +2344,10 @@ cozy-client@^58.2.0:
     sift "^6.0.0"
     url-search-params-polyfill "^8.0.0"
 
-cozy-dataproxy-lib@4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-4.1.0.tgz#20d0a38e059fb5924d85f3b5a550d7d28ec9a477"
-  integrity sha512-k5lVjnpPmATEUZaYeK0B8J0+ntiNRmpmTXyDi8p6H7y41LO/yZ0XhbIqxbO4PjPnT8aKFWx3zQ7LGqIXS2Y7LA==
+cozy-dataproxy-lib@4.3.0:
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-4.3.0.tgz#8d214028073eacd316805304b7d15786c657bf65"
+  integrity sha512-6OuTgANWAxjduXcjGF0+W7DvTcfxHxNsS4+2bs9ACtHYIKuDT9AMp3tXlOKtskHdmNrCwrA3Wg7ncHyFbmXqgw==
   dependencies:
     comlink "4.4.1"
     flexsearch "0.7.43"

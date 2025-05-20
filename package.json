@@ -21,7 +21,7 @@
     "cozy-intent": "^2.29.2",
     "cozy-logger": "^1.10.4",
     "cozy-minilog": "^3.3.1",
-    "cozy-pouch-link": "^54.0.0",
+    "cozy-pouch-link": "58.2.0",
     "cozy-realtime": "^5.6.4",
     "cozy-tsconfig": "^1.2.0",
     "flexsearch": "^0.7.43",

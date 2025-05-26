@@ -7,6 +7,7 @@ import {
   QueryOptions
 } from 'cozy-client/types/types'
 import { SearchEngine } from 'cozy-dataproxy-lib'
+import flag from 'cozy-flags'
 import Minilog from 'cozy-minilog'
 import PouchLink from 'cozy-pouch-link'
 
@@ -117,6 +118,9 @@ const dataProxy: DataProxyWorker = {
     await client.setLinks(links)
     client.instanceOptions = clientData.instanceOptions
     client.capabilities = clientData.capabilities
+    client.registerPlugin(flag.plugin)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    flag.enable(clientData.instanceOptions?.flags)
 
     searchEngine = new SearchEngine(client, searchEngineStorage)
 

@@ -51,6 +51,16 @@ export const ParentWindowProvider = React.memo(
     Comlink.expose(iframeProxy, Comlink.windowEndpoint(parent))
     sendReadyMessage()
 
+    window.addEventListener('online', () => {
+      // This reconnection is normally done by cozy-realtime itself after an online event.
+      // See https://github.com/cozy/cozy-libs/blob/e65ef0b285982ef58269f766870bcb26fee91ef4/packages/cozy-realtime/src/CozyRealtime.js#L578
+      // However, this does not work for the shared worker as the online event is not available there.
+      // Thus, we catch this event in the ParentWindowProvider, to manually reconnect the realtime inside the shared worker.
+      // Note it might be good to eventually handle it on the cozy-realtime side, through some websocket ping/pong with the server,
+      // to periodically check whether the connection is still alive
+      return workerContext.worker.reconnectRealtime()
+    })
+
     if (!workerContext) return undefined
 
     return (

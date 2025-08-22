@@ -9,6 +9,7 @@ import {
   QueryResult,
   ClientCapabilities
 } from 'cozy-client/types/types'
+import { RealtimePlugin } from 'cozy-realtime'
 
 declare module 'cozy-client' {
   interface ClientOptions {
@@ -69,6 +70,10 @@ declare module 'cozy-client' {
 
   interface FlagshipVerificationNeededResult {
     session_code: string
+  }
+
+  interface Plugins {
+    realtime: RealtimePlugin
   }
 
   type LoginFlagshipResult =
@@ -163,7 +168,7 @@ declare module 'cozy-client' {
   }
 
   export default class CozyClient {
-    plugins: unknown
+    plugins: Plugins
     constructor(rawOptions?: ClientOptions)
     getStackClient(): StackClient
     getInstanceOptions(): InstanceOptions

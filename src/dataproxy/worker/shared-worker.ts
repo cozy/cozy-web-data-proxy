@@ -174,6 +174,16 @@ const dataProxy: DataProxyWorker = {
     if (pouchLink) {
       pouchLink.startReplication()
     }
+  },
+
+  reconnectRealtime: () => {
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/unbound-method */
+    const realtime = client?.plugins?.realtime
+    if (realtime) {
+      realtime.reconnect()
+      dataProxy.forceSyncPouch()
+      searchEngine.init() // Init again to refresh indexes
+    }
   }
 }
 

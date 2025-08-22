@@ -2380,10 +2380,10 @@ cozy-pouch-link@58.2.0:
     pouchdb-browser "^7.2.2"
     pouchdb-find "^7.2.2"
 
-cozy-realtime@^5.6.4:
-  version "5.6.4"
-  resolved "https://registry.yarnpkg.com/cozy-realtime/-/cozy-realtime-5.6.4.tgz#8546ffbd4882243bd785ef29f33bb0c74e444e16"
-  integrity sha512-kI43e4lDi8MXAkGF5id5joZco6rQVH/acTuW0tCp7FklM2ZT02mujwIBnDE59QWAn5nmaSakL7VA6dqdgfP6hQ==
+cozy-realtime@^5.7.0:
+  version "5.7.0"
+  resolved "https://registry.yarnpkg.com/cozy-realtime/-/cozy-realtime-5.7.0.tgz#df3bf3124d8291fd2bb0ec2dd69addd8ec0b7a63"
+  integrity sha512-v1iev1qydt8jgWpjdmI2XsDMghzQvQESi4po6jnW3IISJzLKffJwKxySKtz2OSngRZ7l2wEznLTgALv2sL8y4A==
   dependencies:
     "@cozy/minilog" "^1.0.0"
 

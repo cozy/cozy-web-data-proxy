@@ -19,6 +19,7 @@ export interface DataProxyWorker {
     definition: QueryDefinition | Mutation,
     options?: QueryOptions | MutationOptions
   ) => Promise<unknown>
+  reconnectRealtime: () => void
 }
 
 export interface DataProxyWorkerPartialState {

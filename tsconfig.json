@@ -5,7 +5,7 @@
   "compilerOptions": {
     // override from cozy-tsconfig
     "target": "ES2020",
-    "lib": ["DOM", "ES2020"],
+    "lib": ["DOM", "ES2020", "webworker"],
     "emitDeclarationOnly": false,
     "noEmit": true, // needed for swc to handle converting the TypeScript
     "moduleResolution": "bundler",

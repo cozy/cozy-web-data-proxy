@@ -36,7 +36,7 @@ import {
 import schema from '@/doctypes'
 import { getPouchLink } from '@/helpers/client'
 
-const log = Minilog('👷‍♂️ [shared-worker]')
+const log = Minilog('👷‍♂️ [DataProxy worker]')
 Minilog.enable()
 
 let client: CozyClient | undefined = undefined
@@ -214,9 +214,16 @@ const updateState = (): void => {
   broadcastChannel.postMessage(state)
 }
 
-onconnect = (e: MessageEvent): void => {
-  const port = e.ports[0]
+if (self instanceof SharedWorkerGlobalScope) {
+  onconnect = (e: MessageEvent): void => {
+    const port = e.ports[0]
 
-  Comlink.expose(dataProxy, port)
+    Comlink.expose(dataProxy, port)
+    updateState()
+  }
+} else if (self instanceof DedicatedWorkerGlobalScope) {
+  Comlink.expose(dataProxy)
   updateState()
+} else {
+  throw new Error('Worker context not available, abort.')
 }

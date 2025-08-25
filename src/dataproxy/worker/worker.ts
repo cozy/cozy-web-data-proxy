@@ -111,9 +111,10 @@ const dataProxy: DataProxyWorker = {
     // So use the PouchLink only if the user declared a trustful device for the given session
     const isTrustedDevice = await queryIsTrustedDevice(client)
     // TODO: we should add the possibility to disable the pouchlink with a flag
-    const links = isTrustedDevice
-      ? [new PouchLink(pouchLinkOptions), new StackLink()]
-      : [new StackLink()]
+    const links =
+      isTrustedDevice && !clientData.useRemoteData
+        ? [new PouchLink(pouchLinkOptions), new StackLink()]
+        : [new StackLink()]
 
     await client.setLinks(links)
     client.instanceOptions = clientData.instanceOptions

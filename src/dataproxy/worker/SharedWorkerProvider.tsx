@@ -51,6 +51,7 @@ export const SharedWorkerProvider = React.memo(
         log.debug('Init SharedWorker')
 
         let obj: Comlink.Remote<DataProxyWorker>
+        let useRemoteData: boolean = false
         try {
           const workerInst = new SharedWorker(
             new URL('./worker.ts', import.meta.url),
@@ -71,6 +72,7 @@ export const SharedWorkerProvider = React.memo(
             }
           )
           obj = Comlink.wrap<DataProxyWorker>(workerInst)
+          useRemoteData = true
         }
 
         log.debug('Provide CozyClient data to Worker')
@@ -80,7 +82,8 @@ export const SharedWorkerProvider = React.memo(
           uri,
           token: token.token,
           instanceOptions: client.instanceOptions,
-          capabilities: client.capabilities
+          capabilities: client.capabilities,
+          useRemoteData
         })
         setWorker(() => obj)
       }

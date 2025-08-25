@@ -50,16 +50,30 @@ export const SharedWorkerProvider = React.memo(
 
         log.debug('Init SharedWorker')
 
-        const workerInst = new SharedWorker(
-          new URL('./shared-worker.ts', import.meta.url),
-          {
-            name: 'dataproxy-worker'
-          }
-        )
+        let obj: Comlink.Remote<DataProxyWorker>
+        try {
+          const workerInst = new SharedWorker(
+            new URL('./worker.ts', import.meta.url),
+            {
+              name: 'dataproxy-worker'
+            }
+          )
+          obj = Comlink.wrap<DataProxyWorker>(workerInst.port)
+        } catch (e) {
+          // SharedWorker is not available in all contexts, e.g. old desktop browsers
+          // or some mobile browsers. So we fallback to web worker and ask the dataproxy
+          // to use remote data rather than local.
+          log.warn('SharedWorker is not available. Falling back to web Worker')
+          const workerInst = new Worker(
+            new URL('./worker.ts', import.meta.url),
+            {
+              name: 'dataproxy-worker'
+            }
+          )
+          obj = Comlink.wrap<DataProxyWorker>(workerInst)
+        }
 
-        const obj = Comlink.wrap<DataProxyWorker>(workerInst.port)
-
-        log.debug('Provide CozyClient data to SharedWorker')
+        log.debug('Provide CozyClient data to Worker')
         const { uri, token } = client.getStackClient()
 
         await obj.setup({

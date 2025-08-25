@@ -46,4 +46,5 @@ export interface ClientData {
   token: string
   instanceOptions: InstanceOptions
   capabilities: ClientCapabilities
+  useRemoteData: boolean
 }

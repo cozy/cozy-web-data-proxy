@@ -215,7 +215,10 @@ const updateState = (): void => {
   broadcastChannel.postMessage(state)
 }
 
-if (self instanceof SharedWorkerGlobalScope) {
+if (
+  typeof SharedWorkerGlobalScope !== 'undefined' &&
+  self instanceof SharedWorkerGlobalScope
+) {
   onconnect = (e: MessageEvent): void => {
     const port = e.ports[0]
 

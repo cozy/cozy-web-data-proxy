@@ -2324,10 +2324,10 @@ cozy-client@^60.9.0:
     sift "^6.0.0"
     url-search-params-polyfill "^8.0.0"
 
-cozy-dataproxy-lib@^4.9.1:
-  version "4.9.1"
-  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-4.9.1.tgz#889c0aac3e9976d3d71fb86af02b86ddfc83f7dc"
-  integrity sha512-oblOCge/dbSemOWJ6Ya726T/Y0/VKaNS4g/u+xEV9ykvfnZda2SBm5PMHCrFTI4vj5g99f17Pixv4u33CDbtvA==
+cozy-dataproxy-lib@^4.10.0:
+  version "4.10.0"
+  resolved "https://registry.yarnpkg.com/cozy-dataproxy-lib/-/cozy-dataproxy-lib-4.10.0.tgz#4aeab9b1b1437cc16ddd2972039983e86306f49b"
+  integrity sha512-AgSdsax8pP3FmqHRJdCukl1wRR3aMjbDfFcj8/jRhu1/apjNf2bDvlftBWl/otW3kjxNaniBM5kljVZB4uWblA==
   dependencies:
     comlink "4.4.1"
     flexsearch "0.7.43"
@@ -2376,10 +2376,10 @@ cozy-minilog@^3.9.1:
   dependencies:
     microee "0.0.6"
 
-cozy-pouch-link@^60.10.0:
-  version "60.10.0"
-  resolved "https://registry.yarnpkg.com/cozy-pouch-link/-/cozy-pouch-link-60.10.0.tgz#8706f7f6a3414aff31be37b5e0bc5dca482654a1"
-  integrity sha512-gZ1a61lf7NeEKhSZigVF4oPAm+4G/2HPIwzqVtV6qcFRjQhVg3+frtADp5pAfzmetdSzoa59iJGl6rus5Dw1+g==
+cozy-pouch-link@^60.10.1:
+  version "60.10.1"
+  resolved "https://registry.yarnpkg.com/cozy-pouch-link/-/cozy-pouch-link-60.10.1.tgz#ea86cebbe46e68348a66f0c7cd1b1a86cb7982f7"
+  integrity sha512-7S4Ech2u1+pmgLHul48wa63Jm9TZj1OQLp7U3VBiF6ifzRGhxZWJZyjJrEieGkVW737umekSPVRU22b0hvMjNA==
   dependencies:
     cozy-client "^60.9.0"
     pouchdb-browser "^7.2.2"

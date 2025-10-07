@@ -165,7 +165,7 @@ declare module 'cozy-client' {
     addReferencesTo: (references: object, dirs: object[]) => Promise<void>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     launch: (trigger: any) => any
-    fetchSharedDrives: () => Promise<{ data: Array<{ id: string }> }>
+    fetchSharedDrives: () => Promise<{ data: Array<{ _id: string }> }>
   }
 
   export default class CozyClient {

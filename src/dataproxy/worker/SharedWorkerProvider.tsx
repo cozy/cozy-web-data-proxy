@@ -12,44 +12,9 @@ import {
 } from '@/dataproxy/common/DataProxyInterface'
 import { TabCountSync } from '@/dataproxy/common/TabCountSync'
 import { removeStaleLocalData } from '@/dataproxy/worker/data'
+import { useSharedDriveRealtime } from '@/dataproxy/worker/useSharedDriveRealtime'
 
 const log = Minilog('👷‍♂️ [SharedWorkerProvider]')
-
-// Event payload received from cozy realtime for io.cozy.files
-type FilesRealtimeEvent = {
-  dir_id: string
-  class: string
-  referenced_by?: Array<{ id?: string }>
-}
-
-function isFilesRealtimeEvent(value: unknown): value is FilesRealtimeEvent {
-  if (!value || typeof value !== 'object') return false
-  return typeof (value as Record<string, unknown>).dir_id === 'string'
-}
-
-interface Realtime {
-  subscribe: (
-    event: 'created' | 'deleted' | 'updated',
-    doctype: string,
-    handler: (event: unknown) => void
-  ) => void
-  unsubscribe: (
-    event: 'created' | 'deleted' | 'updated',
-    doctype: string,
-    handler: (event: unknown) => void
-  ) => void
-}
-
-function hasRealtimePlugin(
-  plugins: unknown
-): plugins is { realtime: Realtime } {
-  return (
-    !!plugins &&
-    typeof plugins === 'object' &&
-    'realtime' in (plugins as Record<string, unknown>) &&
-    typeof (plugins as { realtime?: unknown }).realtime === 'object'
-  )
-}
 
 export const SharedWorkerContext = React.createContext<
   DataProxyWorkerContext | undefined
@@ -78,49 +43,7 @@ export const SharedWorkerProvider = React.memo(
     const [tabCount, setTabCount] = useState(0)
     const client = useClient()
 
-    useEffect(() => {
-      if (!client || !flag('drive.shared-drive.enabled')) return
-
-      if (!hasRealtimePlugin(client.plugins)) {
-        throw new Error(
-          'You must include the realtime plugin to use RealTimeQueries'
-        )
-      }
-      const realtime = client.plugins.realtime
-
-      const handleFileCreated = (event: unknown): void => {
-        if (!isFilesRealtimeEvent(event)) return
-        if (
-          event.dir_id === 'io.cozy.files.shared-drives-dir' &&
-          event.class === 'shortcut'
-        ) {
-          const driveId = event?.referenced_by?.[0]?.id
-          if (driveId) {
-            log.info(`Shared drive ${driveId} created`)
-            worker?.addSharedDrive(driveId)
-          }
-        }
-      }
-      const handleFileDeleted = (event: unknown): void => {
-        if (!isFilesRealtimeEvent(event)) return
-        if (
-          event.dir_id === 'io.cozy.files.shared-drives-dir' &&
-          event.class === 'shortcut'
-        ) {
-          const driveId = event?.referenced_by?.[0]?.id
-          if (driveId) {
-            log.info(`Shared drive ${driveId} deleted`)
-            worker?.removeSharedDrive(driveId)
-          }
-        }
-      }
-      realtime.subscribe('created', 'io.cozy.files', handleFileCreated)
-      realtime.subscribe('deleted', 'io.cozy.files', handleFileDeleted)
-      return (): void => {
-        realtime.unsubscribe('created', 'io.cozy.files', handleFileCreated)
-        realtime.unsubscribe('deleted', 'io.cozy.files', handleFileDeleted)
-      }
-    }, [client, worker])
+    useSharedDriveRealtime(client, worker)
 
     useEffect(() => {
       if (!client) return

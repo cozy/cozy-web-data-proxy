@@ -60,9 +60,9 @@ export const SharedWorkerProvider = React.memo(
             .collection('io.cozy.sharings')
             .fetchSharedDrives()
 
-          sharedDriveIds = sharedDrives.map(
-            (drive: { _id: string }) => drive._id
-          )
+          sharedDriveIds = sharedDrives
+            .filter(drive => !drive.owner)
+            .map((drive: { _id: string }) => drive._id)
         }
 
         log.debug('Init SharedWorker')

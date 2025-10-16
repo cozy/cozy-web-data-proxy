@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 import { useClient } from 'cozy-client'
+import flag from 'cozy-flags'
 import Minilog from 'cozy-minilog'
 
 import { ParentWindowProvider } from '@/dataproxy/parent/ParentWindowProvider'
@@ -14,6 +15,12 @@ Minilog.enable()
 const App = (): JSX.Element => {
   const client = useClient()
   const { worker, workerState } = useSharedWorker()
+
+  useEffect(() => {
+    if (flag('dataproxy.cleanPouch') === true) {
+      worker.forceSyncPouch({ clean: true })
+    }
+  }, [])
 
   return (
     <div className="content">

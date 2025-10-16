@@ -188,7 +188,9 @@ const dataProxy: DataProxyWorker = {
     return queryRes
   },
 
-  forceSyncPouch: () => {
+  forceSyncPouch: async (
+    options: { clean: boolean } = { clean: false }
+  ): Promise<void> => {
     if (!client) {
       throw new Error(
         'Client is required to execute a forceSyncPouch, please initialize CozyClient'
@@ -196,6 +198,14 @@ const dataProxy: DataProxyWorker = {
     }
     const pouchLink = getPouchLink(client)
     if (pouchLink) {
+      if (options.clean) {
+        await pouchLink.reset()
+        await pouchLink.registerClient(client) // because reset also resets the client
+        await pouchLink.onLogin()
+      } else {
+        await pouchLink.pouches.waitForCurrentReplications()
+      }
+
       pouchLink.startReplication()
     }
   },
@@ -221,7 +231,7 @@ const dataProxy: DataProxyWorker = {
       const replicationOptions = { strategy: 'fromRemote', driveId }
       const options = { shouldStartReplication: true }
       if (pouchLink.addDoctype) {
-        pouchLink.addDoctype(doctype, replicationOptions, options)
+        await pouchLink.addDoctype(doctype, replicationOptions, options)
       }
     }
 
@@ -232,7 +242,7 @@ const dataProxy: DataProxyWorker = {
     searchEngine.addSharedDrive(driveId)
   },
 
-  removeSharedDrive: (driveId: string) => {
+  removeSharedDrive: async (driveId: string) => {
     log.debug(`Worker: Removing shared drive ${driveId}`)
     if (!client) {
       throw new Error('Client is required to remove a shared drive')
@@ -240,7 +250,7 @@ const dataProxy: DataProxyWorker = {
     const pouchLink = getPouchLink(client)
     if (pouchLink) {
       const doctype = `${SHARED_DRIVE_FILE_DOCTYPE}-${driveId}`
-      pouchLink.removeDoctype(doctype)
+      await pouchLink.removeDoctype(doctype)
     }
 
     if (!searchEngine) {

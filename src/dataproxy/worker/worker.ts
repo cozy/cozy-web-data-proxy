@@ -188,7 +188,9 @@ const dataProxy: DataProxyWorker = {
     return queryRes
   },
 
-  forceSyncPouch: () => {
+  forceSyncPouch: async (
+    options: { clean: boolean } = { clean: false }
+  ): Promise<void> => {
     if (!client) {
       throw new Error(
         'Client is required to execute a forceSyncPouch, please initialize CozyClient'
@@ -196,6 +198,14 @@ const dataProxy: DataProxyWorker = {
     }
     const pouchLink = getPouchLink(client)
     if (pouchLink) {
+      if (options.clean) {
+        await pouchLink.reset()
+        await pouchLink.registerClient(client) // because reset also resets the client
+        await pouchLink.onLogin()
+      } else {
+        await pouchLink.pouches.waitForCurrentReplications()
+      }
+
       pouchLink.startReplication()
     }
   },

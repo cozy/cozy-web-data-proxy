@@ -17,7 +17,7 @@ export interface DataProxyWorker {
     clientData: ClientData,
     options?: { sharedDriveIds: string[] }
   ) => Promise<void>
-  forceSyncPouch: () => void
+  forceSyncPouch: (options?: { clean: boolean }) => Promise<void>
   requestLink: (
     definition: QueryDefinition | Mutation,
     options?: QueryOptions | MutationOptions

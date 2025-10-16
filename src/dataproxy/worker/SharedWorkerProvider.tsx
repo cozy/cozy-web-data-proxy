@@ -2,6 +2,7 @@ import * as Comlink from 'comlink'
 import React, { useState, useEffect, ReactNode } from 'react'
 
 import { useClient } from 'cozy-client'
+import flag from 'cozy-flags'
 import Minilog from 'cozy-minilog'
 
 import {
@@ -11,6 +12,7 @@ import {
 } from '@/dataproxy/common/DataProxyInterface'
 import { TabCountSync } from '@/dataproxy/common/TabCountSync'
 import { removeStaleLocalData } from '@/dataproxy/worker/data'
+import { useSharedDriveRealtime } from '@/dataproxy/worker/useSharedDriveRealtime'
 
 const log = Minilog('👷‍♂️ [SharedWorkerProvider]')
 
@@ -41,12 +43,27 @@ export const SharedWorkerProvider = React.memo(
     const [tabCount, setTabCount] = useState(0)
     const client = useClient()
 
+    useSharedDriveRealtime(client, worker)
+
     useEffect(() => {
       if (!client) return
 
       const doAsync = async (): Promise<void> => {
         // Cleanup any remaining local data
         await removeStaleLocalData()
+
+        let sharedDriveIds: string[] = []
+
+        // Fetch shared drives only if the feature is enabled
+        if (flag('drive.shared-drive.enabled')) {
+          const { data: sharedDrives } = await client
+            .collection('io.cozy.sharings')
+            .fetchSharedDrives()
+
+          sharedDriveIds = sharedDrives
+            .filter(drive => !drive.owner)
+            .map((drive: { _id: string }) => drive._id)
+        }
 
         log.debug('Init SharedWorker')
 
@@ -78,14 +95,17 @@ export const SharedWorkerProvider = React.memo(
         log.debug('Provide CozyClient data to Worker')
         const { uri, token } = client.getStackClient()
 
-        await obj.setup({
-          uri,
-          token: token.token,
-          instanceOptions: client.instanceOptions,
-          capabilities: client.capabilities,
-          useRemoteData
-        })
-        setWorker(() => obj)
+        await obj.setup(
+          {
+            uri,
+            token: token.token,
+            instanceOptions: client.instanceOptions,
+            capabilities: client.capabilities,
+            useRemoteData
+          },
+          { sharedDriveIds } as { sharedDriveIds: string[] }
+        )
+        setWorker((): Comlink.Remote<DataProxyWorker> => obj)
       }
 
       doAsync()

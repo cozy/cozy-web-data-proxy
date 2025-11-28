@@ -119,6 +119,7 @@ declare module 'cozy-client' {
     }
     subdomain: 'flat' | 'nested'
     locale: string
+    flags?: Record<string, boolean, null>
   }
 
   export const useClient = (): CozyClient => CozyClient as CozyClient

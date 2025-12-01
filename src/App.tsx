@@ -42,6 +42,15 @@ const App = (): JSX.Element => {
       >
         Force sync
       </button>
+      <button
+        onClick={async () => {
+          const result = await worker.recents()
+          // eslint-disable-next-line no-console
+          console.log('recents', result)
+        }}
+      >
+        Recent files
+      </button>
     </div>
   )
 }

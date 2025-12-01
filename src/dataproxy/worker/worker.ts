@@ -29,7 +29,7 @@ import {
   DataProxyWorkerPartialState,
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
-import { queryIsTrustedDevice } from '@/dataproxy/worker/data'
+import { queryIsTrustedDevice, queryRecents } from '@/dataproxy/worker/data'
 import {
   platformWorker,
   searchEngineStorage
@@ -167,6 +167,13 @@ const dataProxy: DataProxyWorker = {
     const endSearchTime = performance.now()
     log.debug(`Search took ${endSearchTime - startSearchTime} ms`)
     return results
+  },
+
+  recents: () => {
+    if (!client) {
+      throw new Error('Client is not initialized')
+    }
+    return queryRecents(client)
   },
 
   requestLink: async (

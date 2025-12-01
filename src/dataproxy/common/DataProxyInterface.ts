@@ -13,6 +13,7 @@ export interface SearchOptions {
 
 export interface DataProxyWorker {
   search: (query: string, options: SearchOptions) => unknown
+  recents: () => unknown
   setup: (
     clientData: ClientData,
     options?: { sharedDriveIds: string[] }

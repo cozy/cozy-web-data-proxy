@@ -1,10 +1,22 @@
-import CozyClient from 'cozy-client'
+import CozyClient, { Q, QueryDefinition } from 'cozy-client'
+import { QueryOptions } from 'cozy-client/types/types'
 import Minilog from 'cozy-minilog'
 
-import { LOCALSTORAGE_KEY_DELETING_DATA } from '@/consts'
+import { LOCALSTORAGE_KEY_DELETING_DATA, FILES_DOCTYPE } from '@/consts'
+import { getPouchLink } from '@/helpers/client'
 
 import { ClientData } from '../common/DataProxyInterface'
+
+export const TRASH_DIR_ID = 'io.cozy.files.trash-dir'
+export const SHARED_DRIVES_DIR_ID = 'io.cozy.files.shared-drives-dir' // This folder mostly contains external drives like Nextcloud
+
 const log = Minilog('👷‍♂️ [Worker utils]')
+
+const DEFAULT_CACHE_TIMEOUT_QUERIES = 9 * 60 * 1000
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any */
+const defaultFetchPolicy: QueryOptions['fetchPolicy'] = (
+  CozyClient as any
+).fetchPolicies.olderThan(DEFAULT_CACHE_TIMEOUT_QUERIES)
 
 interface SessionInfo {
   last_seen: string
@@ -70,4 +82,60 @@ export const removeStaleLocalData = async (): Promise<void> => {
     log.error(e)
   }
   return
+}
+
+function buildRecentsQuery(doctype: string): {
+  definition: QueryDefinition
+  options: QueryOptions
+} {
+  return {
+    definition: Q(doctype)
+      .where({
+        updated_at: {
+          $gt: null
+        }
+      })
+      .partialIndex({
+        type: 'file',
+        trashed: false,
+        dir_id: {
+          $nin: [SHARED_DRIVES_DIR_ID, TRASH_DIR_ID]
+        }
+      })
+      .indexFields(['updated_at'])
+      .sortBy([{ updated_at: 'desc' }])
+      .limitBy(50),
+    options: {
+      as: 'recent-view-query-' + doctype,
+      fetchPolicy: defaultFetchPolicy
+    }
+  }
+}
+
+export const queryRecents = async (client: CozyClient): Promise<unknown[]> => {
+  if (!client) {
+    throw new Error('Client is not initialized')
+  }
+  const pouchLink = getPouchLink(client)
+  if (!pouchLink) {
+    throw new Error('PouchLink is not initialized')
+  }
+  const doctypes = pouchLink.doctypes.filter(doctype =>
+    doctype.startsWith(FILES_DOCTYPE)
+  )
+
+  // to be sure to have all the shared drives at first page display
+  await pouchLink.pouches.waitForCurrentReplications()
+
+  const sharedDrivesRecentsPromises = doctypes.map(doctype => {
+    const request = buildRecentsQuery(doctype)
+    return client.requestQuery(request.definition, request.options)
+  })
+  const recents: unknown[] = (
+    (await Promise.all(sharedDrivesRecentsPromises)) as Array<{
+      data?: unknown[]
+    }>
+  ).flatMap(recentResult => recentResult.data || [])
+
+  return recents
 }

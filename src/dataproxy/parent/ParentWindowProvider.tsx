@@ -3,6 +3,7 @@ import React, { ReactNode } from 'react'
 
 import { QueryDefinition } from 'cozy-client'
 import {
+  IOCozyFile,
   Mutation,
   MutationOptions,
   QueryOptions
@@ -39,6 +40,10 @@ export const ParentWindowProvider = React.memo(
         const result = await workerContext.worker.search(search, options)
 
         return result
+      },
+      recents: async (): Promise<Array<IOCozyFile>> => {
+        const result = await workerContext.worker.recents()
+        return result as Array<IOCozyFile>
       },
       requestLink: async (
         operation: QueryDefinition | Mutation,

@@ -34,6 +34,7 @@ import {
   platformWorker,
   searchEngineStorage
 } from '@/dataproxy/worker/platformWorker'
+import { resetSharedDrivePouchesOnce } from '@/dataproxy/worker/sharedDrivePouchReset'
 import schema from '@/doctypes'
 import { getPouchLink } from '@/helpers/client'
 
@@ -134,11 +135,23 @@ const dataProxy: DataProxyWorker = {
     // So use the PouchLink only if the user declared a trustful device for the given session
     const isTrustedDevice = await queryIsTrustedDevice(client, clientData)
     log.debug(`Trusted Device: ${isTrustedDevice}`)
+    const usePouchLink = isTrustedDevice && !clientData.useRemoteData
+
+    if (usePouchLink && options?.sharedDriveIds?.length > 0) {
+      try {
+        await resetSharedDrivePouchesOnce(
+          clientData.uri,
+          options.sharedDriveIds
+        )
+      } catch (e) {
+        log.error('Failed to reset shared drive databases', e)
+      }
+    }
+
     // TODO: we should add the possibility to disable the pouchlink with a flag
-    const links =
-      isTrustedDevice && !clientData.useRemoteData
-        ? [new PouchLink(pouchLinkOptions), new StackLink()]
-        : [new StackLink()]
+    const links = usePouchLink
+      ? [new PouchLink(pouchLinkOptions), new StackLink()]
+      : [new StackLink()]
 
     await client.setLinks(links)
     client.instanceOptions = clientData.instanceOptions

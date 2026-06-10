@@ -1,0 +1,48 @@
+diff --git a/node_modules/pouchdb-adapter-indexeddb/lib/index.es.js b/node_modules/pouchdb-adapter-indexeddb/lib/index.es.js
+index fb127a2..548ddab 100644
+--- a/node_modules/pouchdb-adapter-indexeddb/lib/index.es.js
++++ b/node_modules/pouchdb-adapter-indexeddb/lib/index.es.js
+@@ -82,8 +82,8 @@ function needsRewrite(data) {
+       return true;
+     } else if (data[key] === null || typeof data[key] === 'boolean') {
+       return true;
+-    } else if (typeof data[key] === 'object') {
+-      return needsRewrite(data[key]);
++    } else if (typeof data[key] === 'object' && needsRewrite(data[key])) {
++      return true;
+     }
+   }
+ }
+@@ -106,7 +106,7 @@ function rewrite(data) {
+     } else if (typeof data[key] === 'boolean') {
+       clone[safeKey] = data[key] ? IDB_TRUE : IDB_FALSE;
+     } else if (typeof data[key] === 'object') {
+-      clone[safeKey] = rewrite(data[key]);
++      clone[safeKey] = rewrite(data[key]) || data[key];
+     } else {
+       clone[safeKey] = data[key];
+     }
+diff --git a/node_modules/pouchdb-adapter-indexeddb/lib/index.js b/node_modules/pouchdb-adapter-indexeddb/lib/index.js
+index 5e1c1a4..86c6207 100644
+--- a/node_modules/pouchdb-adapter-indexeddb/lib/index.js
++++ b/node_modules/pouchdb-adapter-indexeddb/lib/index.js
+@@ -84,8 +84,8 @@ function needsRewrite(data) {
+       return true;
+     } else if (data[key] === null || typeof data[key] === 'boolean') {
+       return true;
+-    } else if (typeof data[key] === 'object') {
+-      return needsRewrite(data[key]);
++    } else if (typeof data[key] === 'object' && needsRewrite(data[key])) {
++      return true;
+     }
+   }
+ }
+@@ -108,7 +108,7 @@ function rewrite(data) {
+     } else if (typeof data[key] === 'boolean') {
+       clone[safeKey] = data[key] ? IDB_TRUE : IDB_FALSE;
+     } else if (typeof data[key] === 'object') {
+-      clone[safeKey] = rewrite(data[key]);
++      clone[safeKey] = rewrite(data[key]) || data[key];
+     } else {
+       clone[safeKey] = data[key];
+     }

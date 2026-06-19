@@ -140,5 +140,16 @@ export const queryRecents = async (client: CozyClient): Promise<unknown[]> => {
     }>
   ).flatMap(recentResult => recentResult.data || [])
 
+  // Sort results from all doctypes by updated_at descending
+  recents.sort((a, b) => {
+    const dateA = new Date(
+      (a as Record<string, string>).updated_at ?? 0
+    ).getTime()
+    const dateB = new Date(
+      (b as Record<string, string>).updated_at ?? 0
+    ).getTime()
+    return dateB - dateA
+  })
+
   return recents
 }

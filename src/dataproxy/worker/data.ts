@@ -119,10 +119,21 @@ function buildRecentsQuery(doctype: string): {
   }
 }
 
+const isForbidden = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as { status?: number }).status === 403
+
+export interface RecentsResult {
+  recents: unknown[]
+  // shared drives whose query the stack rejected with a 403: their local index
+  // is invalid and should be dropped
+  staleDriveIds: string[]
+}
+
 export const queryRecents = async (
-  client: CozyClient,
-  staleSharedDriveIds: string[] = []
-): Promise<unknown[]> => {
+  client: CozyClient
+): Promise<RecentsResult> => {
   if (!client) {
     throw new Error('Client is not initialized')
   }
@@ -131,27 +142,44 @@ export const queryRecents = async (
     throw new Error('PouchLink is not initialized')
   }
 
-  // Skip shared drives the user was removed from: querying them makes the stack
-  // answer 403 and rejects the whole batch
-  const staleDoctypes = new Set(
-    staleSharedDriveIds.map(id => `${SHARED_DRIVE_FILE_DOCTYPE}-${id}`)
-  )
+  // Only the main files view and the shared drives feed recents: keep the query
+  // set in sync with the 403 handling below, which only knows how to drop a
+  // shared drive. A 403 on any other doctype must still surface as a failure.
+  const sharedDrivePrefix = `${SHARED_DRIVE_FILE_DOCTYPE}-`
   const doctypes = pouchLink.doctypes.filter(
-    doctype => doctype.startsWith(FILES_DOCTYPE) && !staleDoctypes.has(doctype)
+    doctype =>
+      doctype === FILES_DOCTYPE || doctype.startsWith(sharedDrivePrefix)
   )
 
   // to be sure to have all the shared drives at first page display
   await pouchLink.pouches.waitForCurrentReplications()
 
-  const sharedDrivesRecentsPromises = doctypes.map(doctype => {
-    const request = buildRecentsQuery(doctype)
-    return client.requestQuery(request.definition, request.options)
-  })
-  const recents: unknown[] = (
-    (await Promise.all(sharedDrivesRecentsPromises)) as Array<{
-      data?: unknown[]
-    }>
-  ).flatMap(recentResult => recentResult.data || [])
+  const staleDriveIds: string[] = []
+
+  // Query each doctype on its own so one shared drive the stack rejects with a
+  // 403 does not sink the whole batch: we keep the other results and report the
+  // offending drive, known from the doctype we queried, as stale. Any other
+  // failure still rejects the batch.
+  const results = await Promise.all(
+    doctypes.map(async doctype => {
+      try {
+        const request = buildRecentsQuery(doctype)
+        const result = (await client.requestQuery(
+          request.definition,
+          request.options
+        )) as { data?: unknown[] }
+        return result.data ?? []
+      } catch (error) {
+        if (isForbidden(error) && doctype.startsWith(sharedDrivePrefix)) {
+          staleDriveIds.push(doctype.slice(sharedDrivePrefix.length))
+          return []
+        }
+        throw error
+      }
+    })
+  )
+
+  const recents: unknown[] = results.flat()
 
   // Sort results from all doctypes by updated_at descending
   recents.sort((a, b) => {
@@ -164,7 +192,7 @@ export const queryRecents = async (
     return dateB - dateA
   })
 
-  return recents
+  return { recents, staleDriveIds }
 }
 
 interface SharedDrive {
@@ -216,29 +244,39 @@ export const findSharedDriveDrift = async (
 }
 
 /**
- * Runs the recents query. If it fails, the reconcile compares the local shared
- * drives against the stack: it lets the caller drop drives gone stale (the stack
- * answers 403 for them) and sync back drives present on the stack but missing
- * locally, then retries without the stale ones. An error not explained by any
- * drift is rethrown.
+ * Runs the recents query, which already drops the shared drives the stack
+ * rejected with a 403 and reports them as stale. When some are stale, the caller
+ * removes their now-invalid local index, and we sync back any drive the stack
+ * lists but we never indexed so it shows up in recents and search again.
  */
 export const queryRecentsHandlingStaleDrives = async (
   client: CozyClient,
   onStaleSharedDrives: (driveIds: string[]) => Promise<void>,
   onMissingSharedDrives: (driveIds: string[]) => Promise<void>
 ): Promise<unknown[]> => {
-  try {
-    return await queryRecents(client)
-  } catch (error) {
-    const { staleDriveIds, missingDriveIds } =
-      await findSharedDriveDrift(client)
-    if (staleDriveIds.length === 0 && missingDriveIds.length === 0) {
-      throw error
-    }
-    if (missingDriveIds.length > 0) {
-      await onMissingSharedDrives(missingDriveIds)
-    }
-    await onStaleSharedDrives(staleDriveIds)
-    return queryRecents(client, staleDriveIds)
+  const { recents, staleDriveIds } = await queryRecents(client)
+
+  if (staleDriveIds.length === 0) {
+    return recents
   }
+
+  await onStaleSharedDrives(staleDriveIds)
+
+  // A stale drive means the local index drifted from the stack, so reconcile the
+  // other way too and sync back drives present on the stack but missing locally.
+  // Exclude the drives we just dropped: the stack may still list them (their
+  // local index is invalid, not their membership), and re-adding them would
+  // recreate the broken index we just removed.
+  try {
+    const staleSet = new Set(staleDriveIds)
+    const { missingDriveIds } = await findSharedDriveDrift(client)
+    const driveIdsToSync = missingDriveIds.filter(id => !staleSet.has(id))
+    if (driveIdsToSync.length > 0) {
+      await onMissingSharedDrives(driveIdsToSync)
+    }
+  } catch (error) {
+    log.warn('Failed to sync missing shared drives', error)
+  }
+
+  return recents
 }

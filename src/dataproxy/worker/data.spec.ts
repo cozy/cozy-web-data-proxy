@@ -93,30 +93,41 @@ describe('queryIsTrustedDevice', () => {
 })
 
 describe('queryRecents', () => {
-  it('does not query shared drives flagged as stale', async () => {
+  it('returns the recents of every doctype it could query', async () => {
     const requestQuery = jest.fn((definition: { doctype: string }) =>
       Promise.resolve({
         data: [{ _id: definition.doctype, updated_at: '2026-01-01T00:00:00Z' }]
       })
     )
 
-    const recents = await queryRecents(setupPouchLink(requestQuery), [
-      'revoked'
-    ])
-
-    const queried = requestQuery.mock.calls.map(
-      call => (call[0] as { doctype: string }).doctype
+    const { recents, staleDriveIds } = await queryRecents(
+      setupPouchLink(requestQuery)
     )
-    expect(queried).toEqual([
-      'io.cozy.files',
-      'io.cozy.files.shareddrives-active'
-    ])
+
+    expect(recents).toHaveLength(3)
+    expect(staleDriveIds).toEqual([])
+  })
+
+  it('reports a shared drive the stack rejects with a 403 as stale and keeps the rest', async () => {
+    const requestQuery = jest.fn((definition: { doctype: string }) =>
+      definition.doctype === 'io.cozy.files.shareddrives-revoked'
+        ? Promise.reject(make403())
+        : Promise.resolve({
+            data: [{ _id: definition.doctype, updated_at: '2026-01-01' }]
+          })
+    )
+
+    const { recents, staleDriveIds } = await queryRecents(
+      setupPouchLink(requestQuery)
+    )
+
+    expect(staleDriveIds).toEqual(['revoked'])
     expect(recents).toHaveLength(2)
   })
 
-  it('surfaces a failure for a drive that is not flagged stale', async () => {
+  it('rejects when the main files doctype answers 403', async () => {
     const requestQuery = jest.fn((definition: { doctype: string }) =>
-      definition.doctype === 'io.cozy.files.shareddrives-revoked'
+      definition.doctype === 'io.cozy.files'
         ? Promise.reject(make403())
         : Promise.resolve({ data: [] })
     )
@@ -124,6 +135,18 @@ describe('queryRecents', () => {
     await expect(
       queryRecents(setupPouchLink(requestQuery))
     ).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('rejects when a shared drive fails with a non-403 error', async () => {
+    const requestQuery = jest.fn((definition: { doctype: string }) =>
+      definition.doctype === 'io.cozy.files.shareddrives-revoked'
+        ? Promise.reject(new Error('Boom'))
+        : Promise.resolve({ data: [] })
+    )
+
+    await expect(queryRecents(setupPouchLink(requestQuery))).rejects.toThrow(
+      'Boom'
+    )
   })
 })
 
@@ -222,7 +245,7 @@ describe('queryRecentsHandlingStaleDrives', () => {
           })
     )
 
-  it('recovers from a 403 by dropping the stale drive and retrying', async () => {
+  it('drops the index of a drive the stack rejected with a 403', async () => {
     const requestQuery = resolveExcept(REVOKED, make403())
     const fetchSharedDrives = jest
       .fn()
@@ -238,7 +261,52 @@ describe('queryRecentsHandlingStaleDrives', () => {
 
     expect(onStale).toHaveBeenCalledWith(['revoked'])
     expect(onMissing).not.toHaveBeenCalled()
-    expect(fetchSharedDrives).toHaveBeenCalledTimes(1)
+    expect(recents).toHaveLength(2)
+  })
+
+  it('does not re-sync a drive it just dropped, even when the stack still lists it', async () => {
+    // Mirror production: the doctypes the link exposes shrink as drives are
+    // removed, so the drift lookup runs against the post-removal state.
+    const doctypes = [
+      'io.cozy.files',
+      'io.cozy.files.shareddrives-active',
+      REVOKED
+    ]
+    mockedGetPouchLink.mockReturnValue({
+      doctypes,
+      pouches: {
+        waitForCurrentReplications: jest.fn().mockResolvedValue(undefined)
+      }
+    } as unknown as ReturnType<typeof getPouchLink>)
+
+    const requestQuery = resolveExcept(REVOKED, make403())
+    // The stack still reports the revoked drive as accessible: only its local
+    // index is invalid, not its membership.
+    const fetchSharedDrives = jest
+      .fn()
+      .mockResolvedValue({ data: [{ _id: 'active' }, { _id: 'revoked' }] })
+    const onStale = jest.fn((ids: string[]) => {
+      for (const id of ids) {
+        const index = doctypes.indexOf(`io.cozy.files.shareddrives-${id}`)
+        if (index !== -1) {
+          doctypes.splice(index, 1)
+        }
+      }
+      return Promise.resolve()
+    })
+    const onMissing = jest.fn().mockResolvedValue(undefined)
+
+    const recents = await queryRecentsHandlingStaleDrives(
+      {
+        requestQuery,
+        collection: () => ({ fetchSharedDrives })
+      } as unknown as CozyClient,
+      onStale,
+      onMissing
+    )
+
+    expect(onStale).toHaveBeenCalledWith(['revoked'])
+    expect(onMissing).not.toHaveBeenCalled()
     expect(recents).toHaveLength(2)
   })
 
@@ -260,6 +328,25 @@ describe('queryRecentsHandlingStaleDrives', () => {
     expect(onStale).toHaveBeenCalledWith(['revoked'])
   })
 
+  it('still returns recents when the missing-drive sync fails', async () => {
+    const requestQuery = resolveExcept(REVOKED, make403())
+    const fetchSharedDrives = jest
+      .fn()
+      .mockRejectedValue(new Error('sharings unavailable'))
+    const onStale = jest.fn().mockResolvedValue(undefined)
+    const onMissing = jest.fn().mockResolvedValue(undefined)
+
+    const recents = await queryRecentsHandlingStaleDrives(
+      makeClient(requestQuery, fetchSharedDrives),
+      onStale,
+      onMissing
+    )
+
+    expect(onStale).toHaveBeenCalledWith(['revoked'])
+    expect(onMissing).not.toHaveBeenCalled()
+    expect(recents).toHaveLength(2)
+  })
+
   it('does not reconcile when the recents query succeeds', async () => {
     const requestQuery = jest.fn(() => Promise.resolve({ data: [] }))
     const fetchSharedDrives = jest.fn()
@@ -277,11 +364,9 @@ describe('queryRecentsHandlingStaleDrives', () => {
     expect(onMissing).not.toHaveBeenCalled()
   })
 
-  it('rethrows the original error when there is no drift', async () => {
+  it('rethrows a non-403 failure without touching shared drives', async () => {
     const requestQuery = resolveExcept(REVOKED, new Error('Boom'))
-    const fetchSharedDrives = jest
-      .fn()
-      .mockResolvedValue({ data: [{ _id: 'active' }, { _id: 'revoked' }] })
+    const fetchSharedDrives = jest.fn()
     const onStale = jest.fn()
     const onMissing = jest.fn()
 
@@ -292,6 +377,7 @@ describe('queryRecentsHandlingStaleDrives', () => {
         onMissing
       )
     ).rejects.toThrow('Boom')
+    expect(fetchSharedDrives).not.toHaveBeenCalled()
     expect(onStale).not.toHaveBeenCalled()
     expect(onMissing).not.toHaveBeenCalled()
   })

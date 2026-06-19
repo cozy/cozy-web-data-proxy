@@ -2,7 +2,11 @@ import CozyClient, { Q, QueryDefinition } from 'cozy-client'
 import { QueryOptions } from 'cozy-client/types/types'
 import Minilog from 'cozy-minilog'
 
-import { LOCALSTORAGE_KEY_DELETING_DATA, FILES_DOCTYPE } from '@/consts'
+import {
+  LOCALSTORAGE_KEY_DELETING_DATA,
+  FILES_DOCTYPE,
+  SHARED_DRIVE_FILE_DOCTYPE
+} from '@/consts'
 import { getPouchLink } from '@/helpers/client'
 
 import { ClientData } from '../common/DataProxyInterface'
@@ -115,7 +119,10 @@ function buildRecentsQuery(doctype: string): {
   }
 }
 
-export const queryRecents = async (client: CozyClient): Promise<unknown[]> => {
+export const queryRecents = async (
+  client: CozyClient,
+  staleSharedDriveIds: string[] = []
+): Promise<unknown[]> => {
   if (!client) {
     throw new Error('Client is not initialized')
   }
@@ -123,8 +130,14 @@ export const queryRecents = async (client: CozyClient): Promise<unknown[]> => {
   if (!pouchLink) {
     throw new Error('PouchLink is not initialized')
   }
-  const doctypes = pouchLink.doctypes.filter(doctype =>
-    doctype.startsWith(FILES_DOCTYPE)
+
+  // Skip shared drives the user was removed from: querying them makes the stack
+  // answer 403 and rejects the whole batch
+  const staleDoctypes = new Set(
+    staleSharedDriveIds.map(id => `${SHARED_DRIVE_FILE_DOCTYPE}-${id}`)
+  )
+  const doctypes = pouchLink.doctypes.filter(
+    doctype => doctype.startsWith(FILES_DOCTYPE) && !staleDoctypes.has(doctype)
   )
 
   // to be sure to have all the shared drives at first page display
@@ -152,4 +165,80 @@ export const queryRecents = async (client: CozyClient): Promise<unknown[]> => {
   })
 
   return recents
+}
+
+interface SharedDrive {
+  _id: string
+  owner?: boolean
+}
+
+export interface SharedDriveDrift {
+  // indexed locally but the user is no longer a recipient (stack answers 403)
+  staleDriveIds: string[]
+  // a recipient on the stack but never indexed locally (needs a full sync)
+  missingDriveIds: string[]
+}
+
+/**
+ * Compares the shared drives indexed locally against the ones the stack reports
+ * the user is a recipient of, and returns the drift both ways: drives gone stale
+ * locally (the stack now answers 403 for them) and drives present on the stack
+ * but missing locally (they need a full sync to show up in recents and search).
+ */
+export const findSharedDriveDrift = async (
+  client: CozyClient
+): Promise<SharedDriveDrift> => {
+  const empty: SharedDriveDrift = { staleDriveIds: [], missingDriveIds: [] }
+  const pouchLink = getPouchLink(client)
+  if (!pouchLink) {
+    return empty
+  }
+
+  const prefix = `${SHARED_DRIVE_FILE_DOCTYPE}-`
+  const localDriveIds = pouchLink.doctypes
+    .filter(doctype => doctype.startsWith(prefix))
+    .map(doctype => doctype.slice(prefix.length))
+
+  const { data: sharedDrives } = await client
+    .collection('io.cozy.sharings')
+    .fetchSharedDrives()
+  const accessibleDriveIds = (sharedDrives as SharedDrive[])
+    .filter(drive => !drive.owner)
+    .map(drive => drive._id)
+
+  const localSet = new Set(localDriveIds)
+  const accessibleSet = new Set(accessibleDriveIds)
+
+  return {
+    staleDriveIds: localDriveIds.filter(id => !accessibleSet.has(id)),
+    missingDriveIds: accessibleDriveIds.filter(id => !localSet.has(id))
+  }
+}
+
+/**
+ * Runs the recents query. If it fails, the reconcile compares the local shared
+ * drives against the stack: it lets the caller drop drives gone stale (the stack
+ * answers 403 for them) and sync back drives present on the stack but missing
+ * locally, then retries without the stale ones. An error not explained by any
+ * drift is rethrown.
+ */
+export const queryRecentsHandlingStaleDrives = async (
+  client: CozyClient,
+  onStaleSharedDrives: (driveIds: string[]) => Promise<void>,
+  onMissingSharedDrives: (driveIds: string[]) => Promise<void>
+): Promise<unknown[]> => {
+  try {
+    return await queryRecents(client)
+  } catch (error) {
+    const { staleDriveIds, missingDriveIds } =
+      await findSharedDriveDrift(client)
+    if (staleDriveIds.length === 0 && missingDriveIds.length === 0) {
+      throw error
+    }
+    if (missingDriveIds.length > 0) {
+      await onMissingSharedDrives(missingDriveIds)
+    }
+    await onStaleSharedDrives(staleDriveIds)
+    return queryRecents(client, staleDriveIds)
+  }
 }

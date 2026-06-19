@@ -46,14 +46,17 @@ export const queryIsTrustedDevice = async (
     return true
   }
 
-  const isLongRun = resp?.data?.attributes?.long_run
-  const isUnDefined = isLongRun === undefined
-
-  if (isUnDefined) {
-    return true // special case for twake instances with linagora SSO
-  } else {
-    return !!isLongRun
+  // On OIDC instances long_run is not a reliable trust signal, so trust the device
+  if (clientData.capabilities?.can_auth_with_oidc) {
+    return true
   }
+
+  const isLongRun = resp?.data?.attributes?.long_run
+  if (isLongRun === undefined) {
+    return true
+  }
+
+  return isLongRun
 }
 
 const deleteDatabases = async (): Promise<void> => {

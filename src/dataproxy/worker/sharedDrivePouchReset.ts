@@ -7,6 +7,18 @@ const log = Minilog('👷‍♂️ [SharedDrivePouchReset]')
 
 const RESET_MARKER_KEY = 'shared-drive-pouches-rewrite-reset'
 
+// Bump to force a one-time repair sweep across every shared-drive database on
+// the next worker startup, even ones a previous version already marked as reset.
+// This is needed when an earlier build recorded a reset that did not actually
+// fix the database, e.g. the reset ran before the pouchdb-adapter-indexeddb
+// rewrite patch was effective, so the resync re-stored documents unescaped.
+export const RESET_VERSION = 2
+
+interface ResetMarker {
+  version: number
+  doctypes: Record<string, boolean>
+}
+
 const DELETE_DATABASE_TIMEOUT = 10 * 1000
 
 // Storage keys owned by cozy-pouch-link (see cozy-pouch-link/src/localStorage.js)
@@ -90,11 +102,20 @@ const removeSearchIndexData = async (doctype: string): Promise<void> => {
   }
 }
 
-const getResetDoctypes = async (): Promise<Record<string, boolean>> => {
-  const marker = await platformWorker.storage.getItem(RESET_MARKER_KEY)
-  return marker && typeof marker === 'object'
-    ? (marker as Record<string, boolean>)
-    : {}
+const getResetMarker = async (): Promise<ResetMarker> => {
+  const stored = await platformWorker.storage.getItem(RESET_MARKER_KEY)
+  const marker = stored as ResetMarker | null
+  if (
+    marker &&
+    typeof marker === 'object' &&
+    marker.version === RESET_VERSION &&
+    typeof marker.doctypes === 'object'
+  ) {
+    return marker
+  }
+  // No marker, the pre-version format, or an older version: start a fresh sweep
+  // so every database is repaired once under the current reset version.
+  return { version: RESET_VERSION, doctypes: {} }
 }
 
 /**
@@ -110,18 +131,20 @@ const getResetDoctypes = async (): Promise<Record<string, boolean>> => {
  * stays empty.
  *
  * The marker records each reset doctype individually, so a drive that fails
- * mid-reset or only appears in a later session is still reset.
+ * mid-reset or only appears in a later session is still reset. It is scoped to
+ * RESET_VERSION, so bumping that constant repairs every drive again once, even
+ * ones an earlier (ineffective) version already marked.
  */
-export const resetSharedDrivePouchesOnce = async (
+const resetSharedDrivePouches = async (
   uri: string,
   sharedDriveIds: string[]
 ): Promise<void> => {
-  const resetDoctypes = await getResetDoctypes()
+  const marker = await getResetMarker()
   const prefix = uri.replace(/^https?:\/\//, '')
 
   for (const driveId of sharedDriveIds) {
     const doctype = `${SHARED_DRIVE_FILE_DOCTYPE}-${driveId}`
-    if (resetDoctypes[doctype]) continue
+    if (marker.doctypes[doctype]) continue
 
     log.info(`Resetting local database for ${doctype}`)
     await deleteDatabase(`_pouch_${prefix}__doctype__${doctype}`)
@@ -130,7 +153,24 @@ export const resetSharedDrivePouchesOnce = async (
     }
     await removeSearchIndexData(doctype)
 
-    resetDoctypes[doctype] = true
-    await platformWorker.storage.setItem(RESET_MARKER_KEY, resetDoctypes)
+    marker.doctypes[doctype] = true
+    await platformWorker.storage.setItem(RESET_MARKER_KEY, marker)
   }
+}
+
+// setup() and addSharedDrive() can both reach the reset, so serialize the calls
+// to keep the read-modify-write on the shared marker atomic: overlapping calls
+// would otherwise clobber each other's entries and re-reset drives needlessly.
+let resetQueue: Promise<void> = Promise.resolve()
+
+export const resetSharedDrivePouchesOnce = (
+  uri: string,
+  sharedDriveIds: string[]
+): Promise<void> => {
+  const run = resetQueue.then(() =>
+    resetSharedDrivePouches(uri, sharedDriveIds)
+  )
+  // Keep the queue alive even if a run rejects, so later resets still proceed
+  resetQueue = run.catch(() => undefined)
+  return run
 }

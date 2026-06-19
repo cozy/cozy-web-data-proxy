@@ -1,7 +1,10 @@
 import 'fake-indexeddb/auto'
 
 import { platformWorker } from '@/dataproxy/worker/platformWorker'
-import { resetSharedDrivePouchesOnce } from '@/dataproxy/worker/sharedDrivePouchReset'
+import {
+  RESET_VERSION,
+  resetSharedDrivePouchesOnce
+} from '@/dataproxy/worker/sharedDrivePouchReset'
 
 const storageData = new Map<string, unknown>()
 
@@ -82,7 +85,10 @@ describe('resetSharedDrivePouchesOnce', () => {
     expect(storageData.has(`@dataproxy:${DOCTYPE}:searchIndexLastSeq`)).toBe(
       false
     )
-    expect(storageData.get(MARKER_KEY)).toEqual({ [DOCTYPE]: true })
+    expect(storageData.get(MARKER_KEY)).toEqual({
+      version: RESET_VERSION,
+      doctypes: { [DOCTYPE]: true }
+    })
 
     // A database recreated by the resync must not be deleted again
     await createDatabase(DB_NAME)
@@ -91,7 +97,10 @@ describe('resetSharedDrivePouchesOnce', () => {
   })
 
   it('resets drives that appear after a previous reset', async () => {
-    storageData.set(MARKER_KEY, { [DOCTYPE]: true })
+    storageData.set(MARKER_KEY, {
+      version: RESET_VERSION,
+      doctypes: { [DOCTYPE]: true }
+    })
     const otherDoctype = 'io.cozy.files.shareddrives-drive2'
     const otherDbName = `_pouch_alice.localhost:8080__doctype__${otherDoctype}`
     await createDatabase(otherDbName)
@@ -100,8 +109,23 @@ describe('resetSharedDrivePouchesOnce', () => {
 
     expect(await databaseExists(otherDbName)).toBe(false)
     expect(storageData.get(MARKER_KEY)).toEqual({
-      [DOCTYPE]: true,
-      [otherDoctype]: true
+      version: RESET_VERSION,
+      doctypes: { [DOCTYPE]: true, [otherDoctype]: true }
+    })
+  })
+
+  it('repairs a drive again when its marker predates the current reset version', async () => {
+    // A marker from before version gating (or an older version) must not stop
+    // the repair from running again under the current version.
+    storageData.set(MARKER_KEY, { [DOCTYPE]: true })
+    await createDatabase(DB_NAME)
+
+    await resetSharedDrivePouchesOnce(URI, [DRIVE_ID])
+
+    expect(await databaseExists(DB_NAME)).toBe(false)
+    expect(storageData.get(MARKER_KEY)).toEqual({
+      version: RESET_VERSION,
+      doctypes: { [DOCTYPE]: true }
     })
   })
 

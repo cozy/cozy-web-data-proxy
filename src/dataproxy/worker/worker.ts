@@ -248,6 +248,16 @@ const dataProxy: DataProxyWorker = {
     }
     const pouchLink = getPouchLink(client)
     if (pouchLink) {
+      // A drive opened after setup never went through the setup-time reset, so
+      // repair its pre-patch poisoned database here before replicating into it.
+      try {
+        await resetSharedDrivePouchesOnce(client.getStackClient().uri, [
+          driveId
+        ])
+      } catch (e) {
+        log.error('Failed to reset shared drive database', e)
+      }
+
       const doctype = `${SHARED_DRIVE_FILE_DOCTYPE}-${driveId}`
       const replicationOptions = { strategy: 'fromRemote', driveId }
       const options = { shouldStartReplication: true }

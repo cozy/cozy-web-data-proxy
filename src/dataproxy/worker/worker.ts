@@ -29,7 +29,10 @@ import {
   DataProxyWorkerPartialState,
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
-import { queryIsTrustedDevice, queryRecents } from '@/dataproxy/worker/data'
+import {
+  queryIsTrustedDevice,
+  queryRecentsHandlingStaleDrives
+} from '@/dataproxy/worker/data'
 import {
   platformWorker,
   searchEngineStorage
@@ -182,11 +185,35 @@ const dataProxy: DataProxyWorker = {
     return results
   },
 
-  recents: () => {
+  recents: async () => {
     if (!client) {
       throw new Error('Client is not initialized')
     }
-    return queryRecents(client)
+
+    return queryRecentsHandlingStaleDrives(
+      client,
+      async staleSharedDriveIds => {
+        for (const driveId of staleSharedDriveIds) {
+          try {
+            await dataProxy.removeSharedDrive(driveId)
+          } catch (e) {
+            log.error(`Failed to remove stale shared drive ${driveId}`, e)
+          }
+        }
+      },
+      async missingSharedDriveIds => {
+        if (!flag('dataproxy.syncMissingSharedDrives')) {
+          return
+        }
+        for (const driveId of missingSharedDriveIds) {
+          try {
+            await dataProxy.addSharedDrive(driveId)
+          } catch (e) {
+            log.error(`Failed to sync missing shared drive ${driveId}`, e)
+          }
+        }
+      }
+    )
   },
 
   requestLink: async (

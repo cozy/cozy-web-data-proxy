@@ -1,7 +1,7 @@
 {
   "name": "cozy-web-data-proxy",
   "private": true,
-  "version": "1.7.0",
+  "version": "1.8.0",
   "scripts": {
     "postinstall": "patch-package",
     "cozyPublish": "cozy-app-publish --token $REGISTRY_TOKEN --prepublish downcloud --postpublish mattermost",

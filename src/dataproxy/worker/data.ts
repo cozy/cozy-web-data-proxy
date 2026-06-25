@@ -195,6 +195,36 @@ export const queryRecents = async (
   return { recents, staleDriveIds }
 }
 
+/**
+ * Registers a shared drive's doctype on the pouch link, or skips it when already
+ * registered. addDoctype does not dedupe, so re-adding a drive would query its
+ * pouch twice and repeat every file in recents. Returns false when already there.
+ */
+export const registerSharedDriveDoctype = async (
+  client: CozyClient,
+  driveId: string
+): Promise<boolean> => {
+  const pouchLink = getPouchLink(client)
+  if (!pouchLink) {
+    return false
+  }
+
+  const doctype = `${SHARED_DRIVE_FILE_DOCTYPE}-${driveId}`
+  if (pouchLink.doctypes.includes(doctype)) {
+    log.debug(`Shared drive ${driveId} already registered, skipping`)
+    return false
+  }
+
+  if (pouchLink.addDoctype) {
+    await pouchLink.addDoctype(
+      doctype,
+      { strategy: 'fromRemote', driveId },
+      { shouldStartReplication: true }
+    )
+  }
+  return true
+}
+
 interface SharedDrive {
   _id: string
   owner?: boolean

@@ -5,7 +5,8 @@ import {
   findSharedDriveDrift,
   queryIsTrustedDevice,
   queryRecents,
-  queryRecentsHandlingStaleDrives
+  queryRecentsHandlingStaleDrives,
+  registerSharedDriveDoctype
 } from '@/dataproxy/worker/data'
 import { getPouchLink } from '@/helpers/client'
 
@@ -147,6 +148,59 @@ describe('queryRecents', () => {
     await expect(queryRecents(setupPouchLink(requestQuery))).rejects.toThrow(
       'Boom'
     )
+  })
+})
+
+describe('registerSharedDriveDoctype', () => {
+  const setup = (
+    doctypes: string[]
+  ): { client: CozyClient; addDoctype: jest.Mock } => {
+    const addDoctype = jest.fn().mockResolvedValue(undefined)
+    mockedGetPouchLink.mockReturnValue({
+      doctypes,
+      addDoctype
+    } as unknown as ReturnType<typeof getPouchLink>)
+    return { client: {} as unknown as CozyClient, addDoctype }
+  }
+
+  it('registers a drive that is not yet on the pouch link', async () => {
+    const { client, addDoctype } = setup(['io.cozy.files'])
+
+    const registered = await registerSharedDriveDoctype(client, 'team')
+
+    expect(registered).toBe(true)
+    expect(addDoctype).toHaveBeenCalledTimes(1)
+    expect(addDoctype).toHaveBeenCalledWith(
+      'io.cozy.files.shareddrives-team',
+      { strategy: 'fromRemote', driveId: 'team' },
+      { shouldStartReplication: true }
+    )
+  })
+
+  it('does not register a drive whose doctype is already on the pouch link', async () => {
+    // Re-adding an already-registered drive must not append its doctype again.
+    const { client, addDoctype } = setup([
+      'io.cozy.files',
+      'io.cozy.files.shareddrives-team'
+    ])
+
+    const registered = await registerSharedDriveDoctype(client, 'team')
+
+    expect(registered).toBe(false)
+    expect(addDoctype).not.toHaveBeenCalled()
+  })
+
+  it('does nothing when there is no pouch link', async () => {
+    mockedGetPouchLink.mockReturnValue(
+      null as unknown as ReturnType<typeof getPouchLink>
+    )
+
+    const registered = await registerSharedDriveDoctype(
+      {} as unknown as CozyClient,
+      'team'
+    )
+
+    expect(registered).toBe(false)
   })
 })
 

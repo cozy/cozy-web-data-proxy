@@ -31,7 +31,8 @@ import {
 } from '@/dataproxy/common/DataProxyInterface'
 import {
   queryIsTrustedDevice,
-  queryRecentsHandlingStaleDrives
+  queryRecentsHandlingStaleDrives,
+  registerSharedDriveDoctype
 } from '@/dataproxy/worker/data'
 import {
   platformWorker,
@@ -273,15 +274,7 @@ const dataProxy: DataProxyWorker = {
     if (!client) {
       throw new Error('Client is required to add a shared drive')
     }
-    const pouchLink = getPouchLink(client)
-    if (pouchLink) {
-      const doctype = `${SHARED_DRIVE_FILE_DOCTYPE}-${driveId}`
-      const replicationOptions = { strategy: 'fromRemote', driveId }
-      const options = { shouldStartReplication: true }
-      if (pouchLink.addDoctype) {
-        await pouchLink.addDoctype(doctype, replicationOptions, options)
-      }
-    }
+    await registerSharedDriveDoctype(client, driveId)
 
     if (!searchEngine) {
       throw new Error('SearchEngine is not initialized')

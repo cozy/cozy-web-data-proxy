@@ -1,5 +1,9 @@
 import CozyClient, { Q, QueryDefinition } from 'cozy-client'
-import { QueryOptions } from 'cozy-client/types/types'
+import {
+  Mutation,
+  MutationOptions,
+  QueryOptions
+} from 'cozy-client/types/types'
 import Minilog from 'cozy-minilog'
 
 import {
@@ -31,6 +35,26 @@ interface SessionResponse {
   data: {
     attributes: SessionInfo
   }
+}
+
+/**
+ * Forwards a query or mutation operation to the client, passing its options
+ * (including driveId) through verbatim so the reactive shared-drive feature
+ * keeps reaching the right pouch. Mirrors the worker's inline forwarding.
+ */
+export const forwardOperationToClient = async (
+  client: CozyClient,
+  operation: QueryDefinition | Mutation,
+  options?: QueryOptions | MutationOptions
+): Promise<unknown> => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if ((operation as Mutation).mutationType) {
+    return client.requestMutation(operation, options as MutationOptions)
+  }
+  return client.requestQuery(
+    operation as QueryDefinition,
+    options as QueryOptions
+  )
 }
 
 export const queryIsTrustedDevice = async (

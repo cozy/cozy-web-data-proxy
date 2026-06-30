@@ -30,8 +30,10 @@ import {
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
 import {
+  forwardOperationToClient,
   queryIsTrustedDevice,
   queryRecentsHandlingStaleDrives,
+  reconcileSharedDrivesDrift,
   registerSharedDriveDoctype
 } from '@/dataproxy/worker/data'
 import {
@@ -226,15 +228,7 @@ const dataProxy: DataProxyWorker = {
         'Client is required to request, please initialize CozyClient'
       )
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (operation.mutationType) {
-      return client.requestMutation(operation, options)
-    }
-    const queryRes = (await client.requestQuery(
-      operation as QueryDefinition,
-      options as QueryOptions
-    )) as unknown
-    return queryRes
+    return forwardOperationToClient(client, operation, options)
   },
 
   forceSyncPouch: async (
@@ -299,6 +293,19 @@ const dataProxy: DataProxyWorker = {
     }
 
     searchEngine.removeSharedDrive(driveId)
+  },
+
+  reconcileSharedDrives: async (): Promise<void> => {
+    if (!client) return
+    await reconcileSharedDrivesDrift(
+      client,
+      async driveId => {
+        await dataProxy.removeSharedDrive(driveId)
+      },
+      async driveId => {
+        await dataProxy.addSharedDrive(driveId)
+      }
+    )
   }
 }
 

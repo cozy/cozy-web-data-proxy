@@ -89,6 +89,7 @@ export const useSharedDriveRealtime = (
         }
       }
     }
+    void worker?.reconcileSharedDrives()
     realtime.subscribe('created', 'io.cozy.files', handleFileCreated)
     realtime.subscribe('deleted', 'io.cozy.files', handleFileDeleted)
     return (): void => {

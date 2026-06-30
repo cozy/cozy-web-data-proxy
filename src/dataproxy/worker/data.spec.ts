@@ -5,6 +5,7 @@ import type {
   MutationOptions,
   QueryOptions
 } from 'cozy-client/types/types'
+import flag from 'cozy-flags'
 
 import type { ClientData } from '@/dataproxy/common/DataProxyInterface'
 import {
@@ -13,11 +14,15 @@ import {
   queryIsTrustedDevice,
   queryRecents,
   queryRecentsHandlingStaleDrives,
+  reconcileSharedDrivesDrift,
   registerSharedDriveDoctype
 } from '@/dataproxy/worker/data'
 import { getPouchLink } from '@/helpers/client'
 
 jest.mock('@/helpers/client')
+jest.mock('cozy-flags')
+
+const mockFlag = flag as jest.MockedFunction<typeof flag>
 const mockedGetPouchLink = getPouchLink as jest.MockedFunction<
   typeof getPouchLink
 >
@@ -491,5 +496,76 @@ describe('forwardOperationToClient', () => {
       expect.objectContaining({ driveId: 'abc' })
     )
     expect(requestQuery).not.toHaveBeenCalled()
+  })
+})
+
+describe('reconcileSharedDrivesDrift', () => {
+  const makeClient = (
+    localDoctypes: string[],
+    stackDriveIds: string[]
+  ): CozyClient => {
+    mockedGetPouchLink.mockReturnValue({
+      doctypes: localDoctypes
+    } as unknown as ReturnType<typeof getPouchLink>)
+    return {
+      collection: () => ({
+        fetchSharedDrives: (): Promise<unknown> =>
+          Promise.resolve({ data: stackDriveIds.map(id => ({ _id: id })) })
+      })
+    } as unknown as CozyClient
+  }
+
+  it('removes stale drives and adds missing drives when the flag is on', async () => {
+    // 'a' is local but not on stack → stale; 'b' is on stack but not local → missing
+    const client = makeClient(
+      ['io.cozy.files', 'io.cozy.files.shareddrives-a'],
+      ['b']
+    )
+    mockFlag.mockReturnValue(true)
+    const removeSharedDrive = jest.fn().mockResolvedValue(undefined)
+    const addSharedDrive = jest.fn().mockResolvedValue(undefined)
+
+    await reconcileSharedDrivesDrift(client, removeSharedDrive, addSharedDrive)
+
+    expect(removeSharedDrive).toHaveBeenCalledWith('a')
+    expect(addSharedDrive).toHaveBeenCalledWith('b')
+  })
+
+  it('still removes stale drives but skips missing drives when the flag is off', async () => {
+    const client = makeClient(
+      ['io.cozy.files', 'io.cozy.files.shareddrives-a'],
+      ['b']
+    )
+    mockFlag.mockReturnValue(false)
+    const removeSharedDrive = jest.fn().mockResolvedValue(undefined)
+    const addSharedDrive = jest.fn().mockResolvedValue(undefined)
+
+    await reconcileSharedDrivesDrift(client, removeSharedDrive, addSharedDrive)
+
+    expect(removeSharedDrive).toHaveBeenCalledWith('a')
+    expect(addSharedDrive).not.toHaveBeenCalled()
+  })
+
+  it('continues processing remaining drives when one removal fails', async () => {
+    const client = makeClient(
+      [
+        'io.cozy.files',
+        'io.cozy.files.shareddrives-a',
+        'io.cozy.files.shareddrives-c'
+      ],
+      []
+    )
+    mockFlag.mockReturnValue(false)
+    const removeSharedDrive = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('remove failed'))
+      .mockResolvedValue(undefined)
+    const addSharedDrive = jest.fn()
+
+    await reconcileSharedDrivesDrift(client, removeSharedDrive, addSharedDrive)
+
+    expect(removeSharedDrive).toHaveBeenCalledTimes(2)
+    expect(removeSharedDrive).toHaveBeenCalledWith('a')
+    expect(removeSharedDrive).toHaveBeenCalledWith('c')
   })
 })

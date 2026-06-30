@@ -33,6 +33,7 @@ import {
   forwardOperationToClient,
   queryIsTrustedDevice,
   queryRecentsHandlingStaleDrives,
+  reconcileSharedDrivesDrift,
   registerSharedDriveDoctype
 } from '@/dataproxy/worker/data'
 import {
@@ -292,6 +293,19 @@ const dataProxy: DataProxyWorker = {
     }
 
     searchEngine.removeSharedDrive(driveId)
+  },
+
+  reconcileSharedDrives: async (): Promise<void> => {
+    if (!client) return
+    await reconcileSharedDrivesDrift(
+      client,
+      async driveId => {
+        await dataProxy.removeSharedDrive(driveId)
+      },
+      async driveId => {
+        await dataProxy.addSharedDrive(driveId)
+      }
+    )
   }
 }
 

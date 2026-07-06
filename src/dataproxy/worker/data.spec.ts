@@ -539,6 +539,12 @@ describe('forceSyncPouchNow', () => {
     expect(pouchLink.pouches.syncImmediately).toHaveBeenCalledTimes(1)
     expect(pouchLink.startReplication).not.toHaveBeenCalled()
     expect(pouchLink.reset).not.toHaveBeenCalled()
+    // in-flight replications must settle before an immediate sync is scheduled
+    expect(
+      pouchLink.pouches.waitForCurrentReplications.mock.invocationCallOrder[0]
+    ).toBeLessThan(
+      pouchLink.pouches.syncImmediately.mock.invocationCallOrder[0]
+    )
   })
 
   it('resets and restarts the loop on the clean path', async () => {
@@ -554,6 +560,14 @@ describe('forceSyncPouchNow', () => {
     expect(pouchLink.onLogin).toHaveBeenCalledTimes(1)
     expect(pouchLink.startReplication).toHaveBeenCalledTimes(1)
     expect(pouchLink.pouches.syncImmediately).not.toHaveBeenCalled()
+    // order matters: reset -> registerClient -> onLogin -> startReplication
+    const order = [
+      pouchLink.reset.mock.invocationCallOrder[0],
+      pouchLink.registerClient.mock.invocationCallOrder[0],
+      pouchLink.onLogin.mock.invocationCallOrder[0],
+      pouchLink.startReplication.mock.invocationCallOrder[0]
+    ]
+    expect(order).toEqual([...order].sort((a, b) => a - b))
   })
 
   it('is a no-op when there is no pouch link', async () => {

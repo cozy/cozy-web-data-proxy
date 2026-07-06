@@ -60,8 +60,9 @@ export const forwardOperationToClient = async (
 
 /**
  * Forces the pouch link to sync now. On the clean path it resets the link and
- * restarts the replication loop; otherwise it waits for in-flight replications
- * and schedules an immediate one. Uses pouches.syncImmediately() because under
+ * re-registers the client (onLogin restarts the replication loop under
+ * initialSync); otherwise it waits for in-flight replications and schedules an
+ * immediate one. The non-clean path uses pouches.syncImmediately() because under
  * periodicSync startReplication() only warns "loop already started" and does not
  * force a sync.
  */
@@ -77,7 +78,9 @@ export const forceSyncPouchNow = async (
     await pouchLink.reset()
     await pouchLink.registerClient(client) // reset also resets the client
     await pouchLink.onLogin()
-    pouchLink.startReplication() // restart the periodic loop after the reset
+    // Defensive: onLogin already restarts the loop under initialSync, so this is
+    // a no-op then; kept as a safety net if the loop was not (re)started.
+    pouchLink.startReplication()
   } else {
     await pouchLink.pouches.waitForCurrentReplications()
     pouchLink.pouches.syncImmediately()

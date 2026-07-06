@@ -19,9 +19,7 @@ import {
   KONNECTORS_DOCTYPE,
   TRIGGERS_DOCTYPE,
   SETTINGS_DOCTYPE,
-  SHARED_DRIVE_FILE_DOCTYPE,
-  REPLICATION_DEBOUNCE,
-  REPLICATION_DEBOUNCE_MAX_DELAY
+  SHARED_DRIVE_FILE_DOCTYPE
 } from '@/consts'
 import {
   ClientData,
@@ -30,6 +28,7 @@ import {
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
 import {
+  forceSyncPouchNow,
   forwardOperationToClient,
   queryIsTrustedDevice,
   queryRecentsHandlingStaleDrives,
@@ -75,9 +74,7 @@ const dataProxy: DataProxyWorker = {
       ],
       readOnly: true,
       initialSync: true,
-      periodicSync: false,
-      syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
-      syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
+      periodicSync: true,
       platform: { ...platformWorker },
       pouch: {
         options: {
@@ -239,18 +236,7 @@ const dataProxy: DataProxyWorker = {
         'Client is required to execute a forceSyncPouch, please initialize CozyClient'
       )
     }
-    const pouchLink = getPouchLink(client)
-    if (pouchLink) {
-      if (options.clean) {
-        await pouchLink.reset()
-        await pouchLink.registerClient(client) // because reset also resets the client
-        await pouchLink.onLogin()
-      } else {
-        await pouchLink.pouches.waitForCurrentReplications()
-      }
-
-      pouchLink.startReplication()
-    }
+    await forceSyncPouchNow(client, options)
   },
 
   reconnectRealtime: () => {

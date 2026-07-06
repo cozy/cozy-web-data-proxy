@@ -16,7 +16,8 @@ import {
   queryRecents,
   queryRecentsHandlingStaleDrives,
   reconcileSharedDrivesDrift,
-  registerSharedDriveDoctype
+  registerSharedDriveDoctype,
+  relayDriveChanges
 } from '@/dataproxy/worker/data'
 import { getPouchLink } from '@/helpers/client'
 
@@ -647,5 +648,63 @@ describe('reconcileSharedDrivesDrift', () => {
     expect(removeSharedDrive).toHaveBeenCalledTimes(2)
     expect(removeSharedDrive).toHaveBeenCalledWith('a')
     expect(removeSharedDrive).toHaveBeenCalledWith('c')
+  })
+})
+
+describe('relayDriveChanges', () => {
+  it('relays only shared-drive doctypes, deriving driveId and event', () => {
+    const posted: unknown[] = []
+    const broadcast = { postMessage: (m: unknown): void => posted.push(m) }
+
+    relayDriveChanges(
+      {
+        'io.cozy.files': [{ _id: 'own-1' }],
+        'io.cozy.files.shareddrives-abc': [
+          { _id: 'f1', name: 'a' },
+          { _id: 'f2', _deleted: true }
+        ]
+      },
+      broadcast
+    )
+
+    expect(posted).toEqual([
+      {
+        kind: 'realtime',
+        event: 'updated',
+        doctype: 'io.cozy.files',
+        driveId: 'abc',
+        doc: { _id: 'f1', name: 'a' }
+      },
+      {
+        kind: 'realtime',
+        event: 'deleted',
+        doctype: 'io.cozy.files',
+        driveId: 'abc',
+        doc: { _id: 'f2', _deleted: true }
+      }
+    ])
+  })
+
+  it('ignores non shared-drive doctypes entirely', () => {
+    const posted: unknown[] = []
+    relayDriveChanges(
+      {
+        'io.cozy.files': [{ _id: 'own-1' }],
+        'io.cozy.contacts': [{ _id: 'c1' }]
+      },
+      { postMessage: (m: unknown): void => posted.push(m) }
+    )
+    expect(posted).toEqual([])
+  })
+
+  it('does nothing for an empty or undefined payload', () => {
+    const posted: unknown[] = []
+    const broadcast = { postMessage: (m: unknown): void => posted.push(m) }
+    relayDriveChanges({}, broadcast)
+    relayDriveChanges(
+      undefined as unknown as Record<string, unknown[]>,
+      broadcast
+    )
+    expect(posted).toEqual([])
   })
 })

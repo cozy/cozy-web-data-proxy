@@ -11,6 +11,7 @@ import {
   DataProxyWorkerPartialState
 } from '@/dataproxy/common/DataProxyInterface'
 import { TabCountSync } from '@/dataproxy/common/TabCountSync'
+import { isRealtimeMessage } from '@/dataproxy/worker/broadcastMessage'
 import { removeStaleLocalData } from '@/dataproxy/worker/data'
 import { useSharedDriveRealtime } from '@/dataproxy/worker/useSharedDriveRealtime'
 
@@ -113,6 +114,13 @@ export const SharedWorkerProvider = React.memo(
 
     useEffect(() => {
       broadcastChannel.addEventListener('message', (event: MessageEvent) => {
+        if (isRealtimeMessage(event.data)) {
+          window.parent.postMessage(
+            { type: 'DATAPROXYMESSAGE', payload: event.data as unknown },
+            '*'
+          )
+          return
+        }
         setWorkerState(event.data as DataProxyWorkerPartialState)
       })
     }, [])

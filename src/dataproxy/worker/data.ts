@@ -394,3 +394,38 @@ export const queryRecentsHandlingStaleDrives = async (
 
   return recents
 }
+
+interface BroadcastLike {
+  postMessage: (message: unknown) => void
+}
+
+/**
+ * Relays shared-drive document changes pulled by the pouch link (onSync) to the
+ * data-proxy broadcast channel as generic realtime-shaped messages. Only
+ * io.cozy.files.shareddrives-<driveId> doctypes are relayed; the driveId is read
+ * from the doctype key and the event is derived from the doc's _deleted flag.
+ */
+export const relayDriveChanges = (
+  doctypeUpdates: Record<string, unknown[]>,
+  broadcast: BroadcastLike
+): void => {
+  if (!doctypeUpdates) return
+  const prefix = `${SHARED_DRIVE_FILE_DOCTYPE}-`
+  for (const doctype of Object.keys(doctypeUpdates)) {
+    if (!doctype.startsWith(prefix)) continue
+    const driveId = doctype.slice(prefix.length)
+    for (const doc of doctypeUpdates[doctype] ?? []) {
+      const isDeleted =
+        typeof doc === 'object' &&
+        doc !== null &&
+        (doc as { _deleted?: boolean })._deleted === true
+      broadcast.postMessage({
+        kind: 'realtime',
+        event: isDeleted ? 'deleted' : 'updated',
+        doctype: FILES_DOCTYPE,
+        driveId,
+        doc
+      })
+    }
+  }
+}

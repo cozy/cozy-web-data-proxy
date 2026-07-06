@@ -33,7 +33,8 @@ import {
   queryIsTrustedDevice,
   queryRecentsHandlingStaleDrives,
   reconcileSharedDrivesDrift,
-  registerSharedDriveDoctype
+  registerSharedDriveDoctype,
+  relayDriveChanges
 } from '@/dataproxy/worker/data'
 import {
   platformWorker,
@@ -75,6 +76,9 @@ const dataProxy: DataProxyWorker = {
       readOnly: true,
       initialSync: true,
       periodicSync: true,
+      onSync: (doctypeUpdates: Record<string, unknown[]>): void => {
+        relayDriveChanges(doctypeUpdates, broadcastChannel)
+      },
       platform: { ...platformWorker },
       pouch: {
         options: {

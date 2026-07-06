@@ -58,6 +58,32 @@ export const forwardOperationToClient = async (
   )
 }
 
+/**
+ * Forces the pouch link to sync now. On the clean path it resets the link and
+ * restarts the replication loop; otherwise it waits for in-flight replications
+ * and schedules an immediate one. Uses pouches.syncImmediately() because under
+ * periodicSync startReplication() only warns "loop already started" and does not
+ * force a sync.
+ */
+export const forceSyncPouchNow = async (
+  client: CozyClient,
+  options: { clean?: boolean } = {}
+): Promise<void> => {
+  const pouchLink = getPouchLink(client)
+  if (!pouchLink) {
+    return
+  }
+  if (options.clean) {
+    await pouchLink.reset()
+    await pouchLink.registerClient(client) // reset also resets the client
+    await pouchLink.onLogin()
+    pouchLink.startReplication() // restart the periodic loop after the reset
+  } else {
+    await pouchLink.pouches.waitForCurrentReplications()
+    pouchLink.pouches.syncImmediately()
+  }
+}
+
 export const queryIsTrustedDevice = async (
   client: CozyClient,
   clientData: ClientData

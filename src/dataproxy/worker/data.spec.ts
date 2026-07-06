@@ -10,6 +10,7 @@ import flag from 'cozy-flags'
 import type { ClientData } from '@/dataproxy/common/DataProxyInterface'
 import {
   findSharedDriveDrift,
+  forceSyncPouchNow,
   forwardOperationToClient,
   queryIsTrustedDevice,
   queryRecents,
@@ -496,6 +497,71 @@ describe('forwardOperationToClient', () => {
       expect.objectContaining({ driveId: 'abc' })
     )
     expect(requestQuery).not.toHaveBeenCalled()
+  })
+})
+
+describe('forceSyncPouchNow', () => {
+  const makeMockPouchLink = (): {
+    reset: jest.Mock
+    registerClient: jest.Mock
+    onLogin: jest.Mock
+    startReplication: jest.Mock
+    pouches: {
+      waitForCurrentReplications: jest.Mock
+      syncImmediately: jest.Mock
+    }
+  } => ({
+    reset: jest.fn().mockResolvedValue(undefined),
+    registerClient: jest.fn().mockResolvedValue(undefined),
+    onLogin: jest.fn().mockResolvedValue(undefined),
+    startReplication: jest.fn(),
+    pouches: {
+      waitForCurrentReplications: jest.fn().mockResolvedValue(undefined),
+      syncImmediately: jest.fn()
+    }
+  })
+
+  const client = {} as unknown as CozyClient
+
+  afterEach(() => jest.clearAllMocks())
+
+  it('forces an immediate sync via syncImmediately on the non-clean path', async () => {
+    const pouchLink = makeMockPouchLink()
+    mockedGetPouchLink.mockReturnValue(
+      pouchLink as unknown as ReturnType<typeof getPouchLink>
+    )
+
+    await forceSyncPouchNow(client)
+
+    expect(pouchLink.pouches.waitForCurrentReplications).toHaveBeenCalledTimes(
+      1
+    )
+    expect(pouchLink.pouches.syncImmediately).toHaveBeenCalledTimes(1)
+    expect(pouchLink.startReplication).not.toHaveBeenCalled()
+    expect(pouchLink.reset).not.toHaveBeenCalled()
+  })
+
+  it('resets and restarts the loop on the clean path', async () => {
+    const pouchLink = makeMockPouchLink()
+    mockedGetPouchLink.mockReturnValue(
+      pouchLink as unknown as ReturnType<typeof getPouchLink>
+    )
+
+    await forceSyncPouchNow(client, { clean: true })
+
+    expect(pouchLink.reset).toHaveBeenCalledTimes(1)
+    expect(pouchLink.registerClient).toHaveBeenCalledWith(client)
+    expect(pouchLink.onLogin).toHaveBeenCalledTimes(1)
+    expect(pouchLink.startReplication).toHaveBeenCalledTimes(1)
+    expect(pouchLink.pouches.syncImmediately).not.toHaveBeenCalled()
+  })
+
+  it('is a no-op when there is no pouch link', async () => {
+    mockedGetPouchLink.mockReturnValue(
+      null as unknown as ReturnType<typeof getPouchLink>
+    )
+
+    await expect(forceSyncPouchNow(client)).resolves.toBeUndefined()
   })
 })
 

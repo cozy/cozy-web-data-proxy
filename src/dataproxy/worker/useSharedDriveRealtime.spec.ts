@@ -16,6 +16,7 @@ describe('useSharedDriveRealtime', () => {
   let mockUnsubscribe: jest.Mock
   let mockAddSharedDrive: jest.Mock
   let mockRemoveSharedDrive: jest.Mock
+  let mockReconcileSharedDrives: jest.Mock
 
   type RealtimeHandler = (event: unknown) => void
 
@@ -43,7 +44,8 @@ describe('useSharedDriveRealtime', () => {
   const createMockWorker = (): DataProxyWorker => {
     return {
       addSharedDrive: mockAddSharedDrive,
-      removeSharedDrive: mockRemoveSharedDrive
+      removeSharedDrive: mockRemoveSharedDrive,
+      reconcileSharedDrives: mockReconcileSharedDrives
     } as unknown as DataProxyWorker
   }
 
@@ -52,6 +54,7 @@ describe('useSharedDriveRealtime', () => {
     mockUnsubscribe = jest.fn()
     mockAddSharedDrive = jest.fn()
     mockRemoveSharedDrive = jest.fn()
+    mockReconcileSharedDrives = jest.fn().mockResolvedValue(undefined)
     mockFlag.mockReturnValue(true)
   })
 
@@ -203,5 +206,13 @@ describe('useSharedDriveRealtime', () => {
       'io.cozy.files',
       deletedHandler
     )
+  })
+
+  it('should call reconcileSharedDrives once on mount as a drift backstop', () => {
+    renderHook(() =>
+      useSharedDriveRealtime(createMockClient(), createMockWorker())
+    )
+
+    expect(mockReconcileSharedDrives).toHaveBeenCalledTimes(1)
   })
 })

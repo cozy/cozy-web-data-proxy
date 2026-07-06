@@ -19,9 +19,7 @@ import {
   KONNECTORS_DOCTYPE,
   TRIGGERS_DOCTYPE,
   SETTINGS_DOCTYPE,
-  SHARED_DRIVE_FILE_DOCTYPE,
-  REPLICATION_DEBOUNCE,
-  REPLICATION_DEBOUNCE_MAX_DELAY
+  SHARED_DRIVE_FILE_DOCTYPE
 } from '@/consts'
 import {
   ClientData,
@@ -30,8 +28,11 @@ import {
   SearchOptions
 } from '@/dataproxy/common/DataProxyInterface'
 import {
+  forceSyncPouchNow,
+  forwardOperationToClient,
   queryIsTrustedDevice,
   queryRecentsHandlingStaleDrives,
+  reconcileSharedDrivesDrift,
   registerSharedDriveDoctype
 } from '@/dataproxy/worker/data'
 import {
@@ -73,9 +74,7 @@ const dataProxy: DataProxyWorker = {
       ],
       readOnly: true,
       initialSync: true,
-      periodicSync: false,
-      syncDebounceDelayInMs: REPLICATION_DEBOUNCE,
-      syncDebounceMaxDelayInMs: REPLICATION_DEBOUNCE_MAX_DELAY,
+      periodicSync: true,
       platform: { ...platformWorker },
       pouch: {
         options: {
@@ -226,15 +225,7 @@ const dataProxy: DataProxyWorker = {
         'Client is required to request, please initialize CozyClient'
       )
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (operation.mutationType) {
-      return client.requestMutation(operation, options)
-    }
-    const queryRes = (await client.requestQuery(
-      operation as QueryDefinition,
-      options as QueryOptions
-    )) as unknown
-    return queryRes
+    return forwardOperationToClient(client, operation, options)
   },
 
   forceSyncPouch: async (
@@ -245,18 +236,7 @@ const dataProxy: DataProxyWorker = {
         'Client is required to execute a forceSyncPouch, please initialize CozyClient'
       )
     }
-    const pouchLink = getPouchLink(client)
-    if (pouchLink) {
-      if (options.clean) {
-        await pouchLink.reset()
-        await pouchLink.registerClient(client) // because reset also resets the client
-        await pouchLink.onLogin()
-      } else {
-        await pouchLink.pouches.waitForCurrentReplications()
-      }
-
-      pouchLink.startReplication()
-    }
+    await forceSyncPouchNow(client, options)
   },
 
   reconnectRealtime: () => {
@@ -299,6 +279,19 @@ const dataProxy: DataProxyWorker = {
     }
 
     searchEngine.removeSharedDrive(driveId)
+  },
+
+  reconcileSharedDrives: async (): Promise<void> => {
+    if (!client) return
+    await reconcileSharedDrivesDrift(
+      client,
+      async driveId => {
+        await dataProxy.removeSharedDrive(driveId)
+      },
+      async driveId => {
+        await dataProxy.addSharedDrive(driveId)
+      }
+    )
   }
 }
 

@@ -1,5 +1,10 @@
 import CozyClient, { Q, QueryDefinition } from 'cozy-client'
-import { QueryOptions } from 'cozy-client/types/types'
+import {
+  Mutation,
+  MutationOptions,
+  QueryOptions
+} from 'cozy-client/types/types'
+import flag from 'cozy-flags'
 import Minilog from 'cozy-minilog'
 
 import {
@@ -30,6 +35,55 @@ interface SessionInfo {
 interface SessionResponse {
   data: {
     attributes: SessionInfo
+  }
+}
+
+/**
+ * Forwards a query or mutation operation to the client, passing its options
+ * (including driveId) through verbatim so the reactive shared-drive feature
+ * keeps reaching the right pouch. Mirrors the worker's inline forwarding.
+ */
+export const forwardOperationToClient = async (
+  client: CozyClient,
+  operation: QueryDefinition | Mutation,
+  options?: QueryOptions | MutationOptions
+): Promise<unknown> => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if ((operation as Mutation).mutationType) {
+    return client.requestMutation(operation, options as MutationOptions)
+  }
+  return client.requestQuery(
+    operation as QueryDefinition,
+    options as QueryOptions
+  )
+}
+
+/**
+ * Forces the pouch link to sync now. On the clean path it resets the link and
+ * re-registers the client (onLogin restarts the replication loop under
+ * initialSync); otherwise it waits for in-flight replications and schedules an
+ * immediate one. The non-clean path uses pouches.syncImmediately() because under
+ * periodicSync startReplication() only warns "loop already started" and does not
+ * force a sync.
+ */
+export const forceSyncPouchNow = async (
+  client: CozyClient,
+  options: { clean?: boolean } = {}
+): Promise<void> => {
+  const pouchLink = getPouchLink(client)
+  if (!pouchLink) {
+    return
+  }
+  if (options.clean) {
+    await pouchLink.reset()
+    await pouchLink.registerClient(client) // reset also resets the client
+    await pouchLink.onLogin()
+    // Defensive: onLogin already restarts the loop under initialSync, so this is
+    // a no-op then; kept as a safety net if the loop was not (re)started.
+    pouchLink.startReplication()
+  } else {
+    await pouchLink.pouches.waitForCurrentReplications()
+    pouchLink.pouches.syncImmediately()
   }
 }
 
@@ -270,6 +324,36 @@ export const findSharedDriveDrift = async (
   return {
     staleDriveIds: localDriveIds.filter(id => !accessibleSet.has(id)),
     missingDriveIds: accessibleDriveIds.filter(id => !localSet.has(id))
+  }
+}
+
+/**
+ * Reconciles shared-drive drift in both directions: removes local drives the
+ * user no longer has access to, and syncs drives present on the stack but
+ * missing locally (gated on the dataproxy.syncMissingSharedDrives flag).
+ * Designed to run as an offline-drift backstop independently of recents().
+ */
+export const reconcileSharedDrivesDrift = async (
+  client: CozyClient,
+  removeSharedDrive: (driveId: string) => Promise<void>,
+  addSharedDrive: (driveId: string) => Promise<void>
+): Promise<void> => {
+  const { staleDriveIds, missingDriveIds } = await findSharedDriveDrift(client)
+  for (const driveId of staleDriveIds) {
+    try {
+      await removeSharedDrive(driveId)
+    } catch (e) {
+      log.error(`Failed to remove stale shared drive ${driveId}`, e)
+    }
+  }
+  if (flag('dataproxy.syncMissingSharedDrives')) {
+    for (const driveId of missingDriveIds) {
+      try {
+        await addSharedDrive(driveId)
+      } catch (e) {
+        log.error(`Failed to sync missing shared drive ${driveId}`, e)
+      }
+    }
   }
 }
 

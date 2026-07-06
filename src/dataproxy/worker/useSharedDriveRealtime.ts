@@ -89,6 +89,15 @@ export const useSharedDriveRealtime = (
         }
       }
     }
+    // TODO: reconcileSharedDrives only runs once on mount. Membership (a shared
+    // drive added/removed to the user) is otherwise refreshed only by the
+    // created/deleted realtime below — periodicSync does NOT cover it, since it
+    // only replicates already-registered doctypes. If we ever drop this realtime,
+    // we would need a periodic reconcile instead. Open question: fetchSharedDrives
+    // (stack route, already used by reconcileSharedDrivesDrift) could be polled to
+    // reconcile membership without realtime, but it is unclear whether polling
+    // that route is the data-proxy's responsibility.
+    void worker?.reconcileSharedDrives()
     realtime.subscribe('created', 'io.cozy.files', handleFileCreated)
     realtime.subscribe('deleted', 'io.cozy.files', handleFileDeleted)
     return (): void => {

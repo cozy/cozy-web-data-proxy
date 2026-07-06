@@ -26,6 +26,7 @@ export interface DataProxyWorker {
   reconnectRealtime: () => void
   addSharedDrive: (driveId: string) => void
   removeSharedDrive: (driveId: string) => void
+  reconcileSharedDrives: () => Promise<void>
 }
 
 export interface DataProxyWorkerPartialState {
